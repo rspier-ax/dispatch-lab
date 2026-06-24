@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Go
+backend/bin/
+*.exe
+*.test
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Env
+.env
+.env.local
+frontend/src/environments/environment.prod.local.ts
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+e2e/.auth/
+
+# Logs
+*.log
+npm-debug.log*

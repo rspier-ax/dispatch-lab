@@ -1,0 +1,393 @@
+{
+  "seed": 42,
+  "map_bounds": {
+    "min_lng": -51.2426,
+    "max_lng": -51.2110,
+    "min_lat": -30.0475,
+    "max_lat": -30.0208,
+    "center_lat": -30.0277,
+    "center_lng": -51.2284
+  },
+  "landmarks": [
+    { "id": "mercado", "name": "Mercado Público", "pos": { "lat": -30.0277, "lng": -51.2284 } },
+    { "id": "andradas", "name": "Rua dos Andradas", "pos": { "lat": -30.0295, "lng": -51.2250 } },
+    { "id": "gasometro", "name": "Usina do Gasômetro", "pos": { "lat": -30.0345, "lng": -51.2405 } },
+    { "id": "cais_maua", "name": "Cais Mauá", "pos": { "lat": -30.0320, "lng": -51.2300 } },
+    { "id": "matriz", "name": "Praça da Matriz", "pos": { "lat": -30.0285, "lng": -51.2270 } },
+    { "id": "borges", "name": "Av. Borges de Medeiros", "pos": { "lat": -30.0260, "lng": -51.2200 } }
+  ],
+  "couriers": [
+    {
+      "id": "POA-01",
+      "name": "Ana Silva",
+      "speed_mps": 8,
+      "delivery_id": "DEL-001",
+      "route": [
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0285, "lng": -51.2270 },
+        { "lat": -30.0295, "lng": -51.2250 }
+      ]
+    },
+    {
+      "id": "POA-02",
+      "name": "Bruno Costa",
+      "speed_mps": 7.5,
+      "delivery_id": "DEL-002",
+      "route": [
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0320, "lng": -51.2300 }
+      ]
+    },
+    {
+      "id": "POA-03",
+      "name": "Carla Mendes",
+      "speed_mps": 8,
+      "delivery_id": "DEL-003",
+      "route": [
+        { "lat": -30.0295, "lng": -51.2250 },
+        { "lat": -30.0285, "lng": -51.2270 },
+        { "lat": -30.0277, "lng": -51.2284 }
+      ]
+    },
+    {
+      "id": "POA-04",
+      "name": "Diego Ramos",
+      "speed_mps": 7,
+      "delivery_id": "DEL-004",
+      "route": [
+        { "lat": -30.0320, "lng": -51.2300 },
+        { "lat": -30.0345, "lng": -51.2405 },
+        { "lat": -30.0295, "lng": -51.2250 }
+      ]
+    },
+    {
+      "id": "POA-05",
+      "name": "Elena Souza",
+      "speed_mps": 8.5,
+      "delivery_id": "DEL-005",
+      "route": [
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0285, "lng": -51.2270 }
+      ]
+    },
+    {
+      "id": "POA-06",
+      "name": "Felipe Alves",
+      "speed_mps": 7.5,
+      "delivery_id": "DEL-006",
+      "route": [
+        { "lat": -30.0285, "lng": -51.2270 },
+        { "lat": -30.0320, "lng": -51.2300 },
+        { "lat": -30.0345, "lng": -51.2405 }
+      ]
+    },
+    {
+      "id": "POA-07",
+      "name": "Gabriela Lima",
+      "speed_mps": 8,
+      "delivery_id": "DEL-007",
+      "route": [
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0295, "lng": -51.2250 },
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0285, "lng": -51.2270 }
+      ]
+    },
+    {
+      "id": "POA-08",
+      "name": "Henrique Dias",
+      "speed_mps": 7,
+      "delivery_id": "DEL-008",
+      "route": [
+        { "lat": -30.0345, "lng": -51.2405 },
+        { "lat": -30.0320, "lng": -51.2300 },
+        { "lat": -30.0277, "lng": -51.2284 }
+      ]
+    },
+    {
+      "id": "POA-09",
+      "name": "Isabela Rocha",
+      "speed_mps": 8,
+      "delivery_id": "DEL-009",
+      "route": [
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0295, "lng": -51.2250 },
+        { "lat": -30.0320, "lng": -51.2300 }
+      ]
+    },
+    {
+      "id": "POA-10",
+      "name": "João Pereira",
+      "speed_mps": 7.5,
+      "delivery_id": "DEL-010",
+      "route": [
+        { "lat": -30.0295, "lng": -51.2250 },
+        { "lat": -30.0345, "lng": -51.2405 },
+        { "lat": -30.0285, "lng": -51.2270 }
+      ]
+    },
+    {
+      "id": "POA-11",
+      "name": "Karina Nunes",
+      "speed_mps": 8,
+      "delivery_id": "DEL-011",
+      "route": [
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0320, "lng": -51.2300 },
+        { "lat": -30.0260, "lng": -51.2200 }
+      ]
+    },
+    {
+      "id": "POA-12",
+      "name": "Lucas Ferreira",
+      "speed_mps": 7,
+      "delivery_id": "DEL-012",
+      "route": [
+        { "lat": -30.0285, "lng": -51.2270 },
+        { "lat": -30.0277, "lng": -51.2284 },
+        { "lat": -30.0295, "lng": -51.2250 }
+      ]
+    },
+    {
+      "id": "POA-13",
+      "name": "Mariana Teixeira",
+      "speed_mps": 8.5,
+      "delivery_id": "DEL-013",
+      "route": [
+        { "lat": -30.0320, "lng": -51.2300 },
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0285, "lng": -51.2270 }
+      ]
+    },
+    {
+      "id": "POA-14",
+      "name": "Nicolas Barros",
+      "speed_mps": 7.5,
+      "delivery_id": "DEL-014",
+      "route": [
+        { "lat": -30.0345, "lng": -51.2405 },
+        { "lat": -30.0295, "lng": -51.2250 },
+        { "lat": -30.0277, "lng": -51.2284 }
+      ]
+    },
+    {
+      "id": "POA-15",
+      "name": "Olivia Martins",
+      "speed_mps": 8,
+      "delivery_id": "DEL-015",
+      "route": [
+        { "lat": -30.0260, "lng": -51.2200 },
+        { "lat": -30.0285, "lng": -51.2270 },
+        { "lat": -30.0345, "lng": -51.2405 }
+      ]
+    }
+  ],
+  "deliveries": [
+    {
+      "id": "DEL-001",
+      "courier_id": "POA-01",
+      "restaurant": "Lancheria Andradas 847",
+      "street": "Rua dos Andradas",
+      "pickup": { "lat": -30.0277, "lng": -51.2284 },
+      "dropoff": { "lat": -30.0295, "lng": -51.2250 },
+      "status": "in_transit",
+      "customer_name": "Cliente A"
+    },
+    {
+      "id": "DEL-002",
+      "courier_id": "POA-02",
+      "restaurant": "Burger Centro",
+      "street": "Av. Borges de Medeiros",
+      "pickup": { "lat": -30.0260, "lng": -51.2200 },
+      "dropoff": { "lat": -30.0320, "lng": -51.2300 },
+      "status": "in_transit",
+      "customer_name": "Cliente B"
+    },
+    {
+      "id": "DEL-003",
+      "courier_id": "POA-03",
+      "restaurant": "Pizza Matriz",
+      "street": "Praça da Matriz",
+      "pickup": { "lat": -30.0295, "lng": -51.2250 },
+      "dropoff": { "lat": -30.0277, "lng": -51.2284 },
+      "status": "picking_up",
+      "customer_name": "Cliente C"
+    },
+    {
+      "id": "DEL-004",
+      "courier_id": "POA-04",
+      "restaurant": "Sushi Cais",
+      "street": "Cais Mauá",
+      "pickup": { "lat": -30.0320, "lng": -51.2300 },
+      "dropoff": { "lat": -30.0295, "lng": -51.2250 },
+      "status": "in_transit",
+      "customer_name": "Cliente D"
+    },
+    {
+      "id": "DEL-005",
+      "courier_id": "POA-05",
+      "restaurant": "Mercado Grill",
+      "street": "Mercado Público",
+      "pickup": { "lat": -30.0277, "lng": -51.2284 },
+      "dropoff": { "lat": -30.0285, "lng": -51.2270 },
+      "status": "in_transit",
+      "customer_name": "Cliente E"
+    },
+    {
+      "id": "DEL-006",
+      "courier_id": "POA-06",
+      "restaurant": "Café Gasômetro",
+      "street": "Usina do Gasômetro",
+      "pickup": { "lat": -30.0285, "lng": -51.2270 },
+      "dropoff": { "lat": -30.0345, "lng": -51.2405 },
+      "status": "in_transit",
+      "customer_name": "Cliente F"
+    },
+    {
+      "id": "DEL-007",
+      "courier_id": "POA-07",
+      "restaurant": "Tapioca Andradas",
+      "street": "Rua dos Andradas",
+      "pickup": { "lat": -30.0277, "lng": -51.2284 },
+      "dropoff": { "lat": -30.0285, "lng": -51.2270 },
+      "status": "in_transit",
+      "customer_name": "Cliente G"
+    },
+    {
+      "id": "DEL-008",
+      "courier_id": "POA-08",
+      "restaurant": "Churrasco POA",
+      "street": "Usina do Gasômetro",
+      "pickup": { "lat": -30.0345, "lng": -51.2405 },
+      "dropoff": { "lat": -30.0277, "lng": -51.2284 },
+      "status": "in_transit",
+      "customer_name": "Cliente H"
+    },
+    {
+      "id": "DEL-009",
+      "courier_id": "POA-09",
+      "restaurant": "Açaí Borges",
+      "street": "Av. Borges de Medeiros",
+      "pickup": { "lat": -30.0260, "lng": -51.2200 },
+      "dropoff": { "lat": -30.0320, "lng": -51.2300 },
+      "status": "picking_up",
+      "customer_name": "Cliente I"
+    },
+    {
+      "id": "DEL-010",
+      "courier_id": "POA-10",
+      "restaurant": "Pastel Centro",
+      "street": "Rua dos Andradas",
+      "pickup": { "lat": -30.0295, "lng": -51.2250 },
+      "dropoff": { "lat": -30.0285, "lng": -51.2270 },
+      "status": "in_transit",
+      "customer_name": "Cliente J"
+    },
+    {
+      "id": "DEL-011",
+      "courier_id": "POA-11",
+      "restaurant": "Marmita Express",
+      "street": "Mercado Público",
+      "pickup": { "lat": -30.0277, "lng": -51.2284 },
+      "dropoff": { "lat": -30.0260, "lng": -51.2200 },
+      "status": "in_transit",
+      "customer_name": "Cliente K"
+    },
+    {
+      "id": "DEL-012",
+      "courier_id": "POA-12",
+      "restaurant": "Padaria Matriz",
+      "street": "Praça da Matriz",
+      "pickup": { "lat": -30.0285, "lng": -51.2270 },
+      "dropoff": { "lat": -30.0295, "lng": -51.2250 },
+      "status": "in_transit",
+      "customer_name": "Cliente L"
+    },
+    {
+      "id": "DEL-013",
+      "courier_id": "POA-13",
+      "restaurant": "Hamburgueria Mauá",
+      "street": "Cais Mauá",
+      "pickup": { "lat": -30.0320, "lng": -51.2300 },
+      "dropoff": { "lat": -30.0285, "lng": -51.2270 },
+      "status": "in_transit",
+      "customer_name": "Cliente M"
+    },
+    {
+      "id": "DEL-014",
+      "courier_id": "POA-14",
+      "restaurant": "Temaki Guaíba",
+      "street": "Usina do Gasômetro",
+      "pickup": { "lat": -30.0345, "lng": -51.2405 },
+      "dropoff": { "lat": -30.0277, "lng": -51.2284 },
+      "status": "in_transit",
+      "customer_name": "Cliente N"
+    },
+    {
+      "id": "DEL-015",
+      "courier_id": "POA-15",
+      "restaurant": "Salada Fresh",
+      "street": "Av. Borges de Medeiros",
+      "pickup": { "lat": -30.0260, "lng": -51.2200 },
+      "dropoff": { "lat": -30.0345, "lng": -51.2405 },
+      "status": "in_transit",
+      "customer_name": "Cliente O"
+    },
+    {
+      "id": "DEL-016",
+      "courier_id": "POA-01",
+      "restaurant": "Doces Mercado",
+      "street": "Mercado Público",
+      "pickup": { "lat": -30.0277, "lng": -51.2284 },
+      "dropoff": { "lat": -30.0260, "lng": -51.2200 },
+      "status": "picking_up",
+      "customer_name": "Cliente P"
+    },
+    {
+      "id": "DEL-017",
+      "courier_id": "POA-03",
+      "restaurant": "Wrap Andradas",
+      "street": "Rua dos Andradas",
+      "pickup": { "lat": -30.0295, "lng": -51.2250 },
+      "dropoff": { "lat": -30.0320, "lng": -51.2300 },
+      "status": "in_transit",
+      "customer_name": "Cliente Q"
+    },
+    {
+      "id": "DEL-018",
+      "courier_id": "POA-05",
+      "restaurant": "Espeto Cais",
+      "street": "Cais Mauá",
+      "pickup": { "lat": -30.0320, "lng": -51.2300 },
+      "dropoff": { "lat": -30.0295, "lng": -51.2250 },
+      "status": "picking_up",
+      "customer_name": "Cliente R"
+    },
+    {
+      "id": "DEL-019",
+      "courier_id": "POA-09",
+      "restaurant": "Poke Matriz",
+      "street": "Praça da Matriz",
+      "pickup": { "lat": -30.0285, "lng": -51.2270 },
+      "dropoff": { "lat": -30.0345, "lng": -51.2405 },
+      "status": "in_transit",
+      "customer_name": "Cliente S"
+    },
+    {
+      "id": "DEL-020",
+      "courier_id": "POA-11",
+      "restaurant": "Crepe Borges",
+      "street": "Av. Borges de Medeiros",
+      "pickup": { "lat": -30.0260, "lng": -51.2200 },
+      "dropoff": { "lat": -30.0295, "lng": -51.2250 },
+      "status": "in_transit",
+      "customer_name": "Cliente T"
+    }
+  ],
+  "scripts": [
+    { "courier_id": "POA-07", "tick": 45, "action": "go_stale" },
+    { "courier_id": "POA-07", "tick": 90, "action": "reconnect" }
+  ]
+}

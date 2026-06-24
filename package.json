@@ -1,0 +1,14 @@
+{
+  "name": "dispatch-lab",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && go run ./cmd/server",
+    "dev:frontend": "cd frontend && npm start",
+    "test:e2e": "playwright test",
+    "test:backend": "cd backend && go test ./...",
+    "test:frontend": "cd frontend && npm run test -- --watch=false --browsers=ChromeHeadless"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}
