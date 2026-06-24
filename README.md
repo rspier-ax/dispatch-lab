@@ -8,7 +8,7 @@ Real-time operator dispatch console for monitoring active deliveries in **Porto 
 
 ## Key capabilities
 
-- **Live map** — 15 simulated couriers moving across POA Centro on OpenStreetMap (Leaflet).
+- **Live map** — 15 simulated couriers moving across POA Centro (Brazil - RS) on OpenStreetMap (Leaflet).
 - **Active delivery list** — restaurant, street, status, courier, and dynamic ETA.
 - **Courier detail** — route polyline, `live` / `stale` / `offline` tracking state, last seen, event timeline.
 - **Visibility gap demo** — courier `#POA-07` goes stale on Rua dos Andradas (tick 45) and reconnects (tick 90).
