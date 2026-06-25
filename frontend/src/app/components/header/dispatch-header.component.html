@@ -1,0 +1,44 @@
+<header class="dispatch-header">
+  <div class="dispatch-header__brand">
+    <svg class="dispatch-header__logo" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+      <rect x="2" y="2" width="10" height="10" rx="2" fill="#1672e8" />
+      <rect x="16" y="2" width="10" height="10" rx="2" fill="#19a35b" opacity="0.9" />
+      <rect x="9" y="16" width="10" height="10" rx="2" fill="#f2a900" opacity="0.95" />
+    </svg>
+    <div>
+      <div class="dispatch-header__title-row">
+        <span class="dispatch-header__title">DispatchLab</span>
+        <span class="dispatch-header__divider" aria-hidden="true"></span>
+        <span class="dispatch-header__region">POA Centro</span>
+      </div>
+      <span class="dispatch-header__demo">Operador Logístico · Demo</span>
+    </div>
+  </div>
+
+  <div class="dispatch-header__metrics" aria-label="Métricas operacionais">
+    <div class="metric">
+      <span class="metric__value">{{ metrics.total }}</span>
+      <span class="metric__label">ativas</span>
+    </div>
+    <span class="dispatch-header__divider dispatch-header__divider--tall" aria-hidden="true"></span>
+    <div class="metric">
+      <span class="metric__value metric__value--live">{{ metrics.live }}</span>
+      <span class="metric__label">ao vivo</span>
+    </div>
+    <span class="dispatch-header__divider dispatch-header__divider--tall" aria-hidden="true"></span>
+    <div class="metric">
+      <span class="metric__value metric__value--stale">{{ metrics.stale }}</span>
+      <span class="metric__label">com sinal atrasado</span>
+    </div>
+    <span class="dispatch-header__divider dispatch-header__divider--tall" aria-hidden="true"></span>
+    <div class="metric">
+      <span class="metric__value metric__value--offline">{{ metrics.offline }}</span>
+      <span class="metric__label">offline</span>
+    </div>
+  </div>
+
+  <div class="dispatch-header__status">
+    <time class="dispatch-header__clock mono" aria-label="Horário atual">{{ clock }}</time>
+    <app-connection-indicator [state]="connectionState" variant="header" />
+  </div>
+</header>
