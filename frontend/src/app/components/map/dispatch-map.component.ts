@@ -4,6 +4,7 @@ import {
   Output,
   EventEmitter,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
   ElementRef,
   ViewChild,
@@ -14,7 +15,8 @@ import { Courier, Landmark, MapBounds, TrackingState } from '../../services/disp
 import {
   courierMatchesFilter,
   markerClass,
-  routePointsToLatLngs,
+  remainingRouteLatLngs,
+  traveledRouteLatLngs,
   trackingStateShortLabel,
   TrackingFilter,
 } from '../../lib/dispatch-view.utils';
@@ -30,7 +32,7 @@ interface MarkerEntry {
   templateUrl: './dispatch-map.component.html',
   styleUrl: './dispatch-map.component.scss',
 })
-export class DispatchMapComponent implements AfterViewInit, OnChanges {
+export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('mapHost', { static: true }) mapHost!: ElementRef<HTMLDivElement>;
 
   @Input() bounds: MapBounds | null = null;
@@ -38,8 +40,12 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
   @Input() landmarks: Landmark[] = [];
   @Input() selectedId: string | null = null;
   @Input() filter: TrackingFilter = 'all';
+  @Input() showBoundsOverlay = false;
+  @Input() showRoutePolyline = true;
+  @Input() highlightCourierId: string | null = null;
   @Output() filterChange = new EventEmitter<TrackingFilter>();
   @Output() selectCourier = new EventEmitter<string>();
+  @Output() openDemoCenter = new EventEmitter<void>();
 
   readonly filterOptions: { value: TrackingFilter; label: string }[] = [
     { value: 'all', label: 'Todos' },
@@ -48,17 +54,29 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
     { value: 'offline', label: 'Sem sinal' },
   ];
 
+  /** Leaflet tiles stay hidden until the first fitBounds completes (no visible jump on load). */
+  mapViewReady = false;
+
   private map?: L.Map;
   private markers = new Map<string, MarkerEntry>();
   private landmarkMarkers: L.Marker[] = [];
   private routeBg?: L.Polyline;
   private routeFg?: L.Polyline;
+  private routeTraveled?: L.Polyline;
   private boundsRect?: L.Rectangle;
   private stalePulseIds = new Set<string>();
+  private operationAreaFit = false;
+  private resizeObserver?: ResizeObserver;
 
   ngAfterViewInit(): void {
     this.initMap();
     this.render();
+    this.observeMapHostSize();
+    this.tryInitialOperationAreaFit();
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -66,12 +84,23 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
     if (changes['couriers']) {
       this.trackStaleTransitions();
     }
+    if (changes['bounds']?.currentValue) {
+      this.updateBoundsOverlay();
+      if (!changes['bounds']?.previousValue) {
+        this.tryInitialOperationAreaFit();
+      }
+    }
+    if (changes['showBoundsOverlay']) {
+      this.updateBoundsOverlay();
+    }
     if (
       changes['couriers'] ||
       changes['selectedId'] ||
       changes['bounds'] ||
       changes['landmarks'] ||
-      changes['filter']
+      changes['filter'] ||
+      changes['showRoutePolyline'] ||
+      changes['highlightCourierId']
     ) {
       this.render();
     }
@@ -82,14 +111,48 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
   }
 
   fitOperationArea(): void {
+    this.applyOperationAreaFit(true);
+  }
+
+  private observeMapHostSize(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const { width, height } = entries[0]?.contentRect ?? { width: 0, height: 0 };
+      if (width > 0 && height > 0 && this.bounds && !this.operationAreaFit) {
+        this.applyOperationAreaFit(true);
+      }
+    });
+    this.resizeObserver.observe(this.mapHost.nativeElement);
+  }
+
+  private tryInitialOperationAreaFit(): void {
+    if (!this.map || !this.bounds || this.operationAreaFit) return;
+
+    requestAnimationFrame(() => {
+      if (!this.map || !this.bounds || this.operationAreaFit) return;
+      if (!this.hasMapHostSize()) return;
+      this.applyOperationAreaFit(true);
+    });
+  }
+
+  private applyOperationAreaFit(force: boolean): void {
     if (!this.map || !this.bounds) return;
-    this.map.fitBounds(
-      [
-        [this.bounds.min_lat, this.bounds.min_lng],
-        [this.bounds.max_lat, this.bounds.max_lng],
-      ],
-      { padding: [24, 24] },
-    );
+    if (!force && this.operationAreaFit) return;
+
+    const latLngBounds: L.LatLngBoundsExpression = [
+      [this.bounds.min_lat, this.bounds.min_lng],
+      [this.bounds.max_lat, this.bounds.max_lng],
+    ];
+
+    this.map.invalidateSize();
+    this.map.fitBounds(latLngBounds, { animate: false, padding: [24, 24] });
+    this.operationAreaFit = true;
+    this.mapViewReady = true;
+  }
+
+  private hasMapHostSize(): boolean {
+    const el = this.mapHost.nativeElement;
+    return el.clientWidth > 0 && el.clientHeight > 0;
   }
 
   private initMap(): void {
@@ -99,8 +162,10 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
 
     this.map = L.map(this.mapHost.nativeElement, {
       center,
-      zoom: 15,
+      zoom: this.bounds ? 14 : 15,
       zoomControl: false,
+      fadeAnimation: false,
+      zoomAnimation: false,
     });
 
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
@@ -110,15 +175,25 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
       maxZoom: 19,
     }).addTo(this.map);
 
-    if (this.bounds) {
-      this.boundsRect = L.rectangle(
-        [
-          [this.bounds.min_lat, this.bounds.min_lng],
-          [this.bounds.max_lat, this.bounds.max_lng],
-        ],
-        { color: '#1672e8', weight: 1, fillOpacity: 0.03, dashArray: '4 4' },
-      ).addTo(this.map);
+    this.updateBoundsOverlay();
+
+    if (!this.bounds) {
+      this.mapViewReady = true;
     }
+  }
+
+  private updateBoundsOverlay(): void {
+    if (!this.map || !this.bounds) return;
+    this.boundsRect?.remove();
+    this.boundsRect = undefined;
+    if (!this.showBoundsOverlay) return;
+    this.boundsRect = L.rectangle(
+      [
+        [this.bounds.min_lat, this.bounds.min_lng],
+        [this.bounds.max_lat, this.bounds.max_lng],
+      ],
+      { color: '#1672e8', weight: 1, fillOpacity: 0.03, dashArray: '4 4' },
+    ).addTo(this.map);
   }
 
   private trackStaleTransitions(): void {
@@ -191,10 +266,12 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
 
   private markerHtml(courier: Courier, pulseOnce: boolean): string {
     const selected = courier.id === this.selectedId;
-    const cls = markerClass(courier.tracking_state, selected, pulseOnce);
-    const label = selected
-      ? `<span class="dispatch-marker-label">${courier.id}</span>`
-      : '';
+    const highlighted = courier.id === this.highlightCourierId;
+    const cls = markerClass(courier.tracking_state, selected, pulseOnce, highlighted);
+    const label =
+      selected || highlighted
+        ? `<span class="dispatch-marker-label">${courier.id}</span>`
+        : '';
     return `<div class="${cls}">${label}</div>`;
   }
 
@@ -226,13 +303,26 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges {
 
     this.routeBg?.remove();
     this.routeFg?.remove();
+    this.routeTraveled?.remove();
     this.routeBg = undefined;
     this.routeFg = undefined;
+    this.routeTraveled = undefined;
 
     const selected = visible.find((c) => c.id === this.selectedId);
-    if (!selected || selected.route.length < 2) return;
+    if (!selected || selected.route.length < 2 || !this.showRoutePolyline) return;
 
-    const pts = routePointsToLatLngs(selected.route);
+    const traveled = traveledRouteLatLngs(selected);
+    if (traveled.length > 1) {
+      this.routeTraveled = L.polyline(traveled, {
+        color: '#94a3b8',
+        weight: 3,
+        opacity: 0.55,
+        dashArray: '6 6',
+      }).addTo(this.map);
+    }
+
+    const pts = remainingRouteLatLngs(selected);
+    if (pts.length < 2) return;
     this.routeBg = L.polyline(pts, { color: '#ffffff', weight: 6, opacity: 0.95 }).addTo(this.map);
     this.routeFg = L.polyline(pts, { color: '#1672e8', weight: 3, opacity: 0.9 }).addTo(this.map);
   }

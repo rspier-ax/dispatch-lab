@@ -16,6 +16,26 @@
     { "id": "matriz", "name": "Praça da Matriz", "pos": { "lat": -30.0285, "lng": -51.2270 } },
     { "id": "borges", "name": "Av. Borges de Medeiros", "pos": { "lat": -30.0260, "lng": -51.2200 } }
   ],
+  "street_corridors": {
+    "cais_andradas": [
+      { "lat": -30.0320, "lng": -51.2300 },
+      { "lat": -30.0320, "lng": -51.2280 },
+      { "lat": -30.0310, "lng": -51.2265 },
+      { "lat": -30.0300, "lng": -51.2255 },
+      { "lat": -30.0295, "lng": -51.2250 }
+    ],
+    "mercado_matriz": [
+      { "lat": -30.0277, "lng": -51.2284 },
+      { "lat": -30.0281, "lng": -51.2277 },
+      { "lat": -30.0285, "lng": -51.2270 }
+    ],
+    "borges_mercado": [
+      { "lat": -30.0260, "lng": -51.2200 },
+      { "lat": -30.0265, "lng": -51.2230 },
+      { "lat": -30.0270, "lng": -51.2260 },
+      { "lat": -30.0277, "lng": -51.2284 }
+    ]
+  },
   "couriers": [
     {
       "id": "POA-01",

@@ -1,9 +1,18 @@
 <div class="map-shell">
-  <div #mapHost class="map-host" role="application" aria-label="Mapa de entregadores POA Centro"></div>
+  <div
+    #mapHost
+    class="map-host"
+    [class.map-host--ready]="mapViewReady"
+    role="application"
+    aria-label="Mapa de entregadores POA Centro"
+  ></div>
 
   <div class="map-overlay map-overlay--top-left">
     <button type="button" class="map-btn" aria-label="Ajustar operação ao bounds do cenário" (click)="fitOperationArea()">
       Ajustar operação
+    </button>
+    <button type="button" class="map-btn map-btn--primary" (click)="openDemoCenter.emit()">
+      Central da demo
     </button>
   </div>
 

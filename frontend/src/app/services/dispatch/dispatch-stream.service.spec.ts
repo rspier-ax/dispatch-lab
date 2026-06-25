@@ -71,6 +71,16 @@ describe('DispatchStreamService', () => {
     expect(lat).toBe(-30.03);
   });
 
+  it('merges tick updates', () => {
+    service.connect(sampleCouriers, sampleDeliveries);
+    service.mergeEvent('tick_update', { tick: 12, interval_ms: 1000 });
+    let tick = 0;
+    service.state$.subscribe((s) => {
+      tick = s.tick;
+    });
+    expect(tick).toBe(12);
+  });
+
   it('tracks tracking_state_change', () => {
     service.connect(sampleCouriers, sampleDeliveries);
     service.mergeEvent('tracking_state_change', {

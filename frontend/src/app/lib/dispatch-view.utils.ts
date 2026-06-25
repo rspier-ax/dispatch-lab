@@ -65,9 +65,22 @@ export function deliveryPhaseLabel(status: string): string {
 }
 
 export function formatEta(seconds: number): string {
-  if (seconds <= 0) return 'Calculando ETA';
+  if (seconds <= 0) return '—';
   const m = Math.ceil(seconds / 60);
   return `${m} min`;
+}
+
+export function formatEtaLabel(seconds: number): string {
+  if (seconds <= 0) return 'ETA calculando…';
+  return `ETA ${formatEta(seconds)}`;
+}
+
+export function isQueuedDelivery(
+  delivery: { id: string; courier_id: string },
+  couriers: Courier[],
+): boolean {
+  const courier = couriers.find((c) => c.id === delivery.courier_id);
+  return courier != null && courier.delivery_id !== delivery.id;
 }
 
 export function formatClock(date: Date): string {
@@ -154,9 +167,27 @@ export function timelineDisplay(event: TimelineEvent): TimelineDisplay {
       };
     case 'started':
       return {
-        title: 'Entrega atribuída',
+        title: 'Rota iniciada',
         description: event.message,
         tone: 'neutral',
+      };
+    case 'arrived_pickup':
+      return {
+        title: 'Chegou ao restaurante',
+        description: event.message,
+        tone: 'operational',
+      };
+    case 'picked_up':
+      return {
+        title: 'Pedido coletado',
+        description: event.message,
+        tone: 'operational',
+      };
+    case 'approaching_dropoff':
+      return {
+        title: 'Próximo ao destino',
+        description: event.message,
+        tone: 'operational',
       };
     default:
       return {
@@ -184,13 +215,47 @@ export function courierMatchesFilter(state: TrackingState, filter: TrackingFilte
   return state === filter;
 }
 
-export function markerClass(state: TrackingState, selected: boolean, pulseOnce: boolean): string {
+export function markerClass(
+  state: TrackingState,
+  selected: boolean,
+  pulseOnce: boolean,
+  highlighted = false,
+): string {
   const classes = ['dispatch-marker', `dispatch-marker--${state}`];
   if (selected) classes.push('dispatch-marker--selected');
+  if (highlighted && !selected) classes.push('dispatch-marker--highlighted');
   if (pulseOnce && state === 'stale') classes.push('dispatch-marker--pulse-once');
   return classes.join(' ');
 }
 
 export function routePointsToLatLngs(route: RoutePoint[]): [number, number][] {
   return route.map((p) => [p.lat, p.lng]);
+}
+
+export function remainingRouteLatLngs(courier: Courier): [number, number][] {
+  const { route, route_index, position } = courier;
+  if (route.length < 2) {
+    return [[position.lat, position.lng]];
+  }
+  if (route_index >= route.length - 1) {
+    return [[position.lat, position.lng]];
+  }
+  const pts: [number, number][] = [[position.lat, position.lng]];
+  for (let i = route_index + 1; i < route.length; i++) {
+    pts.push([route[i].lat, route[i].lng]);
+  }
+  return pts;
+}
+
+export function traveledRouteLatLngs(courier: Courier): [number, number][] {
+  const { route, route_index, position } = courier;
+  if (route.length < 2 || route_index <= 0) {
+    return [];
+  }
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= route_index; i++) {
+    pts.push([route[i].lat, route[i].lng]);
+  }
+  pts.push([position.lat, position.lng]);
+  return pts;
 }

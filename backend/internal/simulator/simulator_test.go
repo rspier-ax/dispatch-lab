@@ -65,3 +65,37 @@ func TestCouriersMoveWithinBounds(t *testing.T) {
 		}
 	}
 }
+
+func TestEmitsTickUpdate(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	var ticks []int
+	sim := New(st, func(eventType string, data interface{}) {
+		if eventType == "tick_update" {
+			ticks = append(ticks, data.(domain.TickUpdate).Tick)
+		}
+	})
+	sim.TickOnce()
+	if len(ticks) != 1 || ticks[0] != 1 {
+		t.Fatalf("expected tick_update 1, got %v", ticks)
+	}
+}
+
+func TestPickingUpCourierGetsMilestones(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	sim := New(st, nil)
+	for i := 0; i < 120; i++ {
+		sim.TickOnce()
+		if st.HasMilestone("POA-03", "arrived_pickup") {
+			return
+		}
+	}
+	t.Fatal("expected POA-03 arrived_pickup milestone within 120 ticks")
+}

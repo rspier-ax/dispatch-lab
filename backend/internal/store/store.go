@@ -9,14 +9,15 @@ import (
 )
 
 type Store struct {
-	mu         sync.RWMutex
-	scenario   *domain.Scenario
-	couriers   map[string]*domain.Courier
-	deliveries map[string]*domain.Delivery
-	timelines  map[string][]domain.TimelineEvent
-	tick       int
-	startedAt  time.Time
-	eventSeq   int
+	mu          sync.RWMutex
+	scenario    *domain.Scenario
+	couriers    map[string]*domain.Courier
+	deliveries  map[string]*domain.Delivery
+	timelines   map[string][]domain.TimelineEvent
+	milestones  map[string]map[string]bool
+	tick        int
+	startedAt   time.Time
+	eventSeq    int
 }
 
 func New(sc *domain.Scenario) *Store {
@@ -25,6 +26,7 @@ func New(sc *domain.Scenario) *Store {
 		couriers:   make(map[string]*domain.Courier),
 		deliveries: make(map[string]*domain.Delivery),
 		timelines:  make(map[string][]domain.TimelineEvent),
+		milestones: make(map[string]map[string]bool),
 		startedAt:  time.Now().UTC(),
 	}
 	s.initFromScenario()
@@ -55,7 +57,7 @@ func (s *Store) initFromScenario() {
 				ID:        s.nextEventID(),
 				CourierID: def.ID,
 				Type:      "started",
-				Message:   "Entregador disponível no Centro Histórico",
+				Message:   "Rota iniciada no Centro Histórico",
 				Timestamp: s.startedAt,
 			},
 		}
@@ -281,4 +283,70 @@ func (s *Store) ScriptsForTick(tick int) []domain.ScriptAction {
 		}
 	}
 	return out
+}
+
+func (s *Store) UpcomingScripts(fromTick int) []domain.ScriptAction {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []domain.ScriptAction
+	for _, sc := range s.scenario.Scripts {
+		if sc.Tick >= fromTick {
+			out = append(out, sc)
+		}
+	}
+	return out
+}
+
+func (s *Store) HasMilestone(courierID, eventType string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if m, ok := s.milestones[courierID]; ok {
+		return m[eventType]
+	}
+	return false
+}
+
+func (s *Store) SetMilestone(courierID, eventType string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.milestones[courierID] == nil {
+		s.milestones[courierID] = make(map[string]bool)
+	}
+	s.milestones[courierID][eventType] = true
+}
+
+func (s *Store) GetDelivery(id string) (*domain.Delivery, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	d, ok := s.deliveries[id]
+	if !ok {
+		return nil, false
+	}
+	cp := *d
+	return &cp, true
+}
+
+func (s *Store) UpdateDeliveryStatus(deliveryID string, status domain.DeliveryStatus) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, ok := s.deliveries[deliveryID]
+	if !ok {
+		return false
+	}
+	d.Status = status
+	return true
+}
+
+func (s *Store) Reset(sc *domain.Scenario) {
+	s.mu.Lock()
+	s.scenario = sc
+	s.couriers = make(map[string]*domain.Courier)
+	s.deliveries = make(map[string]*domain.Delivery)
+	s.timelines = make(map[string][]domain.TimelineEvent)
+	s.milestones = make(map[string]map[string]bool)
+	s.tick = 0
+	s.eventSeq = 0
+	s.startedAt = time.Now().UTC()
+	s.mu.Unlock()
+	s.initFromScenario()
 }

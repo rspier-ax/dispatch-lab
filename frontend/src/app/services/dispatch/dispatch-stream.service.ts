@@ -6,8 +6,10 @@ import {
   Courier,
   Delivery,
   DeliveryEventPayload,
+  DeliveryStatus,
   ETAUpdate,
   PositionUpdate,
+  TickUpdate,
   TrackingStateChange,
 } from './types';
 
@@ -15,6 +17,8 @@ export interface StreamState {
   couriers: Map<string, Courier>;
   deliveries: Map<string, Delivery>;
   timeline: DeliveryEventPayload[];
+  tick: number;
+  tickIntervalMs: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +29,8 @@ export class DispatchStreamService implements OnDestroy {
     couriers: new Map(),
     deliveries: new Map(),
     timeline: [],
+    tick: 0,
+    tickIntervalMs: 1000,
   });
 
   readonly connection$ = this.connectionSubject.asObservable();
@@ -39,6 +45,8 @@ export class DispatchStreamService implements OnDestroy {
       couriers: new Map(initialCouriers.map((c) => [c.id, { ...c }])),
       deliveries: new Map(initialDeliveries.map((d) => [d.id, { ...d }])),
       timeline: [],
+      tick: 0,
+      tickIntervalMs: 1000,
     };
     this.stateSubject.next(state);
     this.connectionSubject.next('reconnecting');
@@ -72,6 +80,9 @@ export class DispatchStreamService implements OnDestroy {
     this.source.addEventListener('delivery_event', (e) => {
       this.handleEvent('delivery_event', e as MessageEvent);
     });
+    this.source.addEventListener('tick_update', (e) => {
+      this.handleEvent('tick_update', e as MessageEvent);
+    });
   }
 
   disconnect(): void {
@@ -104,6 +115,8 @@ export class DispatchStreamService implements OnDestroy {
     const couriers = new Map(current.couriers);
     const deliveries = new Map(current.deliveries);
     let timeline = [...current.timeline];
+    let tick = current.tick;
+    let tickIntervalMs = current.tickIntervalMs;
 
     if (type === 'position_update') {
       const u = data as PositionUpdate;
@@ -144,8 +157,20 @@ export class DispatchStreamService implements OnDestroy {
     if (type === 'delivery_event') {
       const ev = data as DeliveryEventPayload;
       timeline = [...timeline, ev].slice(-50);
+      if (ev.delivery_id && ev.status) {
+        const d = deliveries.get(ev.delivery_id);
+        if (d) {
+          deliveries.set(ev.delivery_id, { ...d, status: ev.status as DeliveryStatus });
+        }
+      }
     }
 
-    this.stateSubject.next({ couriers, deliveries, timeline });
+    if (type === 'tick_update') {
+      const t = data as TickUpdate;
+      tick = t.tick;
+      tickIntervalMs = t.interval_ms;
+    }
+
+    this.stateSubject.next({ couriers, deliveries, timeline, tick, tickIntervalMs });
   }
 }

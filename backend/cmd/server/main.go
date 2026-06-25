@@ -31,12 +31,12 @@ func main() {
 	stop := make(chan struct{})
 	go sim.Run(stop)
 
-	api := &handlers.API{Store: st, Hub: hub}
+	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: handlers.DemoControlsEnabled()}
 	mux := http.NewServeMux()
 	api.Register(mux)
 
 	log.Printf("DispatchLab backend listening on :%s (CORS %s)", addr, origin)
-	if err := http.ListenAndServe(":"+addr, handlers.CORS(mux, origin)); err != nil {
+	if err := http.ListenAndServe(":"+addr, handlers.CORS(mux, origin, api.ControlsEnabled)); err != nil {
 		close(stop)
 		log.Fatal(err)
 	}
