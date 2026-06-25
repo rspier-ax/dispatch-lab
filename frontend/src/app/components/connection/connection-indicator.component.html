@@ -1,0 +1,30 @@
+@if (variant === 'header') {
+  <div
+    class="connection connection--header"
+    [class.connection--connected]="state === 'connected'"
+    [class.connection--reconnecting]="state === 'reconnecting'"
+    [class.connection--disconnected]="state === 'disconnected'"
+    role="status"
+    [attr.aria-label]="ariaLabel"
+    aria-live="polite"
+  >
+    <span class="connection__dot" aria-hidden="true"></span>
+    <div class="connection__lines">
+      <span class="connection__primary">{{ sseLabel }}</span>
+      <span class="connection__secondary">{{ operationalLabel }}</span>
+    </div>
+  </div>
+} @else {
+  <span
+    class="connection connection--default"
+    [class.connection--connected]="state === 'connected'"
+    [class.connection--reconnecting]="state === 'reconnecting'"
+    [class.connection--disconnected]="state === 'disconnected'"
+    role="status"
+    [attr.aria-label]="ariaLabel"
+    aria-live="polite"
+  >
+    <span class="connection__dot" aria-hidden="true"></span>
+    {{ sseLabel }}
+  </span>
+}
