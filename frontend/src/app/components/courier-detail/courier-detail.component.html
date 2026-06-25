@@ -1,0 +1,106 @@
+@if (detail) {
+  <section class="detail" aria-labelledby="courier-heading" aria-live="polite">
+    <header class="detail__header">
+      <div>
+        <h2 id="courier-heading">{{ detail.courier.id }}</h2>
+        <p class="detail__name">{{ detail.courier.name }}</p>
+      </div>
+      <button
+        type="button"
+        class="detail__close"
+        aria-label="Fechar detalhe do entregador"
+        (click)="closed.emit()"
+      >
+        ✕
+      </button>
+    </header>
+
+    <div class="detail__badge-row">
+      <span class="badge" [class]="'badge--' + detail.courier.tracking_state">
+        {{ trackingLabel(detail.courier.tracking_state) }}
+      </span>
+      <span class="detail__signal mono">{{ signalAge }}</span>
+    </div>
+
+    @if (reconnectNotice) {
+      <div class="detail__reconnect" role="status">
+        Conexão restabelecida — posição atualizada.
+      </div>
+    }
+
+    @if (detail.courier.tracking_state === 'stale') {
+      <div class="detail__alert" role="alert">
+        <strong>Sinal atrasado</strong>
+        <p>Última posição conhecida. O entregador pode estar fora de cobertura.</p>
+      </div>
+    }
+
+    <dl class="detail__stats">
+      <div>
+        <dt>Última atualização</dt>
+        <dd class="mono">{{ formatTime(detail.courier.last_seen_at) }}</dd>
+      </div>
+      <div>
+        <dt>ETA estimado</dt>
+        <dd>{{ formatEta(detail.courier.eta_seconds) }}</dd>
+      </div>
+      @if (distanceLabel) {
+        <div>
+          <dt>Distância restante</dt>
+          <dd>{{ distanceLabel }}</dd>
+        </div>
+      }
+    </dl>
+
+    @if (detail.delivery) {
+      <section class="detail__section" aria-labelledby="delivery-info-heading">
+        <h3 id="delivery-info-heading">Informações da entrega</h3>
+        <dl class="detail__info">
+          <div>
+            <dt>Entrega</dt>
+            <dd>{{ detail.delivery.id }}</dd>
+          </div>
+          <div>
+            <dt>Restaurante</dt>
+            <dd>{{ detail.delivery.restaurant }}</dd>
+          </div>
+          <div>
+            <dt>Destino</dt>
+            <dd>{{ detail.delivery.street }}</dd>
+          </div>
+          <div>
+            <dt>Cliente</dt>
+            <dd>{{ detail.delivery.customer_name }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    <section class="detail__section" aria-labelledby="timeline-heading">
+      <h3 id="timeline-heading">Linha do tempo</h3>
+      @if (detail.timeline.length === 0) {
+        <p class="detail__empty">Sem eventos registrados.</p>
+      } @else {
+        <ol class="timeline">
+          @for (ev of detail.timeline; track ev.id) {
+            @let display = timelineDisplay(ev);
+            <li class="timeline__item" [class]="'timeline__item--' + display.tone">
+              <span class="timeline__dot" aria-hidden="true"></span>
+              <div class="timeline__content">
+                <time class="mono">{{ formatTime(ev.timestamp) }}</time>
+                <p class="timeline__title">{{ display.title }}</p>
+                @if (display.description) {
+                  <p class="timeline__desc">{{ display.description }}</p>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </section>
+} @else {
+  <section class="detail detail--empty">
+    <p>Selecione um entregador na lista ou no mapa para ver rota, status e eventos.</p>
+  </section>
+}
