@@ -1,0 +1,29 @@
+<div class="map-shell">
+  <div #mapHost class="map-host" role="application" aria-label="Mapa de entregadores POA Centro"></div>
+
+  <div class="map-overlay map-overlay--top-left">
+    <button type="button" class="map-btn" aria-label="Ajustar operação ao bounds do cenário" (click)="fitOperationArea()">
+      Ajustar operação
+    </button>
+  </div>
+
+  <div class="map-overlay map-overlay--top-right" role="group" aria-label="Filtrar marcadores no mapa">
+    @for (opt of filterOptions; track opt.value) {
+      <button
+        type="button"
+        class="map-pill"
+        [class.map-pill--active]="filter === opt.value"
+        [attr.aria-pressed]="filter === opt.value"
+        (click)="onFilterClick(opt.value)"
+      >
+        {{ opt.label }}
+      </button>
+    }
+  </div>
+
+  <div class="map-overlay map-overlay--bottom-left map-legend" aria-label="Legenda do mapa">
+    <span class="map-legend__item"><span class="map-legend__dot map-legend__dot--live"></span> Ao vivo</span>
+    <span class="map-legend__item"><span class="map-legend__dot map-legend__dot--stale"></span> Sinal atrasado</span>
+    <span class="map-legend__item"><span class="map-legend__dot map-legend__dot--offline"></span> Sem sinal</span>
+  </div>
+</div>
