@@ -1,0 +1,27 @@
+<footer class="dispatch-footer">
+  <div class="dispatch-footer__left">
+    <span class="dispatch-footer__dot" [class.dispatch-footer__dot--live]="streamActive" aria-hidden="true"></span>
+    <div>
+      <p class="dispatch-footer__title">
+        @if (streamActive) {
+          Atualizações em tempo real ativas
+        } @else {
+          Atualizações em tempo real pausadas
+        }
+      </p>
+      <p class="dispatch-footer__sub">Os dados estão sendo atualizados automaticamente.</p>
+    </div>
+  </div>
+
+  <div class="dispatch-footer__center">
+    <span>Centro Histórico · Porto Alegre, RS</span>
+    @if (bboxLabel) {
+      <span class="mono">{{ bboxLabel }}</span>
+    }
+  </div>
+
+  <div class="dispatch-footer__right">
+    <span>Versão demo {{ version }}</span>
+    <span>Ambiente de demonstração</span>
+  </div>
+</footer>

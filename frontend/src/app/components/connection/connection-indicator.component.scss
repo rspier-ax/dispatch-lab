@@ -1,0 +1,65 @@
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.connection__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.connection--default {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.connection--header {
+  font-size: 0.6875rem;
+  color: rgb(255 255 255 / 88%);
+}
+
+.connection__lines {
+  display: grid;
+  gap: 0.125rem;
+  line-height: 1.2;
+}
+
+.connection__primary {
+  font-weight: 600;
+}
+
+.connection__secondary {
+  color: rgb(255 255 255 / 55%);
+}
+
+.connection--connected {
+  color: #6ee7a0;
+}
+
+.connection--reconnecting {
+  color: #ffd166;
+}
+
+.connection--disconnected {
+  color: #fca5a5;
+}
+
+.connection--default.connection--connected {
+  color: #15803d;
+}
+
+.connection--default.connection--reconnecting {
+  color: #b45309;
+}
+
+.connection--default.connection--disconnected {
+  color: #b91c1c;
+}
