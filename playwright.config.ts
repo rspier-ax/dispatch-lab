@@ -22,7 +22,11 @@ export default defineConfig({
       cwd: './backend',
       port: backendPort,
       reuseExistingServer: !process.env.CI,
-      env: { CORS_ORIGIN: `http://localhost:${frontendPort}`, SIM_TICK_MS: '200' },
+      env: {
+        CORS_ORIGIN: `http://localhost:${frontendPort}`,
+        SIM_TICK_MS: '200',
+        DEMO_CONTROLS: 'true',
+      },
     },
     {
       command: 'npm start',

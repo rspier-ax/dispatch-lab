@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('DispatchLab operator flow', () => {
-  test('loads POA map, selects POA-07, observes stale badge after scenario tick', async ({
+  test('loads POA map, opens demo center, selects POA-07, observes stale badge', async ({
     page,
+    request,
   }) => {
     test.setTimeout(120_000);
 
+    await request.post('http://localhost:8080/api/demo/reset').catch(() => undefined);
     await page.goto('/');
 
     await expect(page.getByText('DispatchLab')).toBeVisible({ timeout: 30_000 });
@@ -14,6 +16,15 @@ test.describe('DispatchLab operator flow', () => {
     });
 
     await expect(page.getByRole('heading', { name: /Entregas ativas/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Central da demo/i })).toBeVisible();
+    await expect(page.getByText('Painel da demo')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /Central da demo/i }).click();
+    await expect(page.getByRole('heading', { name: 'Central da Demo' })).toBeVisible();
+    await expect(page.getByText('POA-07 — sinal atrasado')).toBeVisible();
+    await page.getByRole('button', { name: 'Fechar' }).click();
+    await expect(page.getByRole('heading', { name: 'Central da Demo' })).toBeHidden();
+
     const deliveryOption = page.getByRole('option', { name: /DEL-007/ });
     await expect(deliveryOption).toBeVisible();
     await deliveryOption.click();

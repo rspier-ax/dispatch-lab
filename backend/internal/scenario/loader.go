@@ -22,5 +22,6 @@ func Load() (*domain.Scenario, error) {
 	if len(s.Couriers) == 0 {
 		return nil, fmt.Errorf("scenario has no couriers")
 	}
+	ExpandStreetRoutes(&s)
 	return &s, nil
 }

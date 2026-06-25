@@ -4,7 +4,8 @@ import { Courier, Delivery, TrackingState } from '../../services/dispatch/types'
 import {
   courierMatchesFilter,
   deliveryPhaseLabel,
-  formatEta,
+  formatEtaLabel,
+  isQueuedDelivery,
   matchesDeliverySearch,
   trackingStateLabel,
   TrackingFilter,
@@ -59,5 +60,6 @@ export class DeliveryListComponent {
 
   trackingLabel = trackingStateLabel;
   phaseLabel = deliveryPhaseLabel;
-  formatEta = formatEta;
+  formatEtaLabel = formatEtaLabel;
+  isQueued = isQueuedDelivery;
 }

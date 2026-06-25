@@ -158,3 +158,26 @@ type ETAUpdate struct {
 	CourierID  string `json:"courier_id"`
 	ETASeconds int    `json:"eta_seconds"`
 }
+
+type TickUpdate struct {
+	Tick         int            `json:"tick"`
+	IntervalMS   int            `json:"interval_ms"`
+	NextScripts  []ScriptAction `json:"next_scripts,omitempty"`
+}
+
+type DemoScenario struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	CourierID   string `json:"courier_id,omitempty"`
+	DeliveryID  string `json:"delivery_id,omitempty"`
+}
+
+type DemoInfo struct {
+	Tick             int            `json:"tick"`
+	IntervalMS       int            `json:"interval_ms"`
+	Scripts          []ScriptAction `json:"scripts"`
+	Scenarios        []DemoScenario `json:"scenarios"`
+	ControlsEnabled  bool           `json:"controls_enabled"`
+	ScenarioSeed     int            `json:"scenario_seed"`
+}

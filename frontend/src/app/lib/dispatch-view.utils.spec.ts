@@ -1,6 +1,7 @@
 import {
   courierMetrics,
   formatEta,
+  formatEtaLabel,
   formatSignalAge,
   remainingDistanceM,
   staleAgeSeconds,
@@ -51,7 +52,8 @@ describe('dispatch-view.utils', () => {
 
   it('formats eta', () => {
     expect(formatEta(180)).toBe('3 min');
-    expect(formatEta(0)).toBe('Calculando ETA');
+    expect(formatEta(0)).toBe('—');
+    expect(formatEtaLabel(0)).toBe('ETA calculando…');
   });
 
   it('computes remaining distance', () => {

@@ -103,3 +103,32 @@ export interface DeliveryEventPayload {
   message: string;
   timestamp: string;
 }
+
+export interface ScriptAction {
+  courier_id: string;
+  tick: number;
+  action: string;
+}
+
+export interface TickUpdate {
+  tick: number;
+  interval_ms: number;
+  next_scripts?: ScriptAction[];
+}
+
+export interface DemoScenario {
+  id: string;
+  title: string;
+  description: string;
+  courier_id?: string;
+  delivery_id?: string;
+}
+
+export interface DemoInfo {
+  tick: number;
+  interval_ms: number;
+  scripts: ScriptAction[];
+  scenarios: DemoScenario[];
+  controls_enabled: boolean;
+  scenario_seed: number;
+}

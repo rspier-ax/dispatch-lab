@@ -10,6 +10,12 @@ import (
 	"github.com/rspier-ax/dispatch-lab/backend/internal/store"
 )
 
+const (
+	pickupArriveM   = 35
+	pickupDepartM   = 45
+	dropoffNearM    = 50
+)
+
 type EventEmitter func(eventType string, data interface{})
 
 type Simulator struct {
@@ -32,6 +38,14 @@ func New(st *store.Store, emit EventEmitter) *Simulator {
 	}
 }
 
+func (sim *Simulator) IntervalMS() int {
+	return int(sim.interval / time.Millisecond)
+}
+
+func (sim *Simulator) Store() *store.Store {
+	return sim.store
+}
+
 func (sim *Simulator) Run(stop <-chan struct{}) {
 	ticker := time.NewTicker(sim.interval)
 	defer ticker.Stop()
@@ -48,8 +62,20 @@ func (sim *Simulator) Run(stop <-chan struct{}) {
 func (sim *Simulator) tick() {
 	tick := sim.store.IncrementTick()
 	now := time.Now().UTC()
+	sim.emitTickUpdate(tick)
 	sim.applyScripts(tick, now)
 	sim.moveCouriers(now)
+}
+
+func (sim *Simulator) emitTickUpdate(tick int) {
+	if sim.emit == nil {
+		return
+	}
+	sim.emit("tick_update", domain.TickUpdate{
+		Tick:        tick,
+		IntervalMS:  sim.IntervalMS(),
+		NextScripts: sim.store.UpcomingScripts(tick),
+	})
 }
 
 func (sim *Simulator) applyScripts(tick int, now time.Time) {
@@ -65,13 +91,31 @@ func (sim *Simulator) applyScripts(tick int, now time.Time) {
 	}
 }
 
+func (sim *Simulator) TriggerAction(courierID, action string) bool {
+	now := time.Now().UTC()
+	switch action {
+	case "go_stale":
+		sim.setTrackingState(courierID, domain.TrackingStale, now,
+			"Sinal GPS instável — última posição conhecida na Rua dos Andradas")
+		return true
+	case "reconnect":
+		sim.setTrackingState(courierID, domain.TrackingLive, now,
+			"Conexão restabelecida — retomando transmissão de posição")
+		return true
+	default:
+		return false
+	}
+}
+
 func (sim *Simulator) setTrackingState(id string, state domain.TrackingState, now time.Time, timelineMsg string) {
 	var change domain.TrackingStateChange
+	var deliveryID string
 	sim.store.UpdateCourier(id, func(c *domain.Courier) {
 		c.TrackingState = state
 		if state == domain.TrackingLive {
 			c.LastSeenAt = now
 		}
+		deliveryID = c.DeliveryID
 		change = domain.TrackingStateChange{
 			CourierID:     id,
 			TrackingState: state,
@@ -86,10 +130,11 @@ func (sim *Simulator) setTrackingState(id string, state domain.TrackingState, no
 	if sim.emit != nil {
 		sim.emit("tracking_state_change", change)
 		sim.emit("delivery_event", domain.DeliveryEventPayload{
-			CourierID: id,
-			Type:      eventType,
-			Message:   timelineMsg,
-			Timestamp: now,
+			DeliveryID: deliveryID,
+			CourierID:  id,
+			Type:       eventType,
+			Message:    timelineMsg,
+			Timestamp:  now,
 		})
 	}
 }
@@ -139,13 +184,6 @@ func (sim *Simulator) advanceCourier(c *domain.Courier, now time.Time, bounds do
 		}
 	}
 
-	update := domain.PositionUpdate{
-		CourierID: c.ID,
-		Lat:       lat,
-		Lng:       lng,
-		Timestamp: now,
-	}
-
 	sim.store.UpdateCourier(c.ID, func(cur *domain.Courier) {
 		cur.Position = domain.Position{Lat: lat, Lng: lng}
 		cur.RouteIndex = newIdx
@@ -154,23 +192,86 @@ func (sim *Simulator) advanceCourier(c *domain.Courier, now time.Time, bounds do
 		cur.ETASeconds = sim.computeETA(cur)
 	})
 
+	sim.checkMilestones(c.ID, lat, lng, now)
+
 	if !geo.WithinBounds(lat, lng, bounds.MinLat, bounds.MaxLat, bounds.MinLng, bounds.MaxLng) {
 		return
 	}
 
 	if sim.emit != nil {
-		sim.emit("position_update", update)
+		sim.emit("position_update", domain.PositionUpdate{
+			CourierID: c.ID,
+			Lat:       lat,
+			Lng:       lng,
+			Timestamp: now,
+		})
 		var eta int
+		var deliveryID string
 		sim.store.UpdateCourier(c.ID, func(cur *domain.Courier) {
 			eta = cur.ETASeconds
+			deliveryID = cur.DeliveryID
 		})
-		sim.store.UpdateDeliveryETA(c.DeliveryID, eta)
+		sim.store.UpdateDeliveryETA(deliveryID, eta)
 		sim.emit("eta_update", domain.ETAUpdate{
-			DeliveryID: c.DeliveryID,
+			DeliveryID: deliveryID,
 			CourierID:  c.ID,
 			ETASeconds: eta,
 		})
 	}
+}
+
+func (sim *Simulator) checkMilestones(courierID string, lat, lng float64, now time.Time) {
+	courier, ok := sim.store.GetCourier(courierID)
+	if !ok {
+		return
+	}
+	delivery, ok := sim.store.GetDelivery(courier.DeliveryID)
+	if !ok {
+		return
+	}
+
+	distPickup := geo.HaversineM(lat, lng, delivery.Pickup.Lat, delivery.Pickup.Lng)
+	distDropoff := geo.HaversineM(lat, lng, delivery.Dropoff.Lat, delivery.Dropoff.Lng)
+
+	if delivery.Status == domain.StatusPickingUp {
+		if distPickup <= pickupArriveM && !sim.store.HasMilestone(courierID, "arrived_pickup") {
+			msg := "Chegou ao restaurante " + delivery.Restaurant
+			sim.emitMilestone(courierID, delivery.ID, "arrived_pickup", msg, delivery.Status, now)
+		}
+		if sim.store.HasMilestone(courierID, "arrived_pickup") && distPickup >= pickupDepartM &&
+			!sim.store.HasMilestone(courierID, "picked_up") {
+			msg := "Pedido coletado — em rota para " + delivery.Street
+			sim.store.UpdateDeliveryStatus(delivery.ID, domain.StatusInTransit)
+			sim.emitMilestone(courierID, delivery.ID, "picked_up", msg, domain.StatusInTransit, now)
+		}
+	}
+
+	if delivery.Status == domain.StatusInTransit || sim.store.HasMilestone(courierID, "picked_up") {
+		if distDropoff <= dropoffNearM && !sim.store.HasMilestone(courierID, "approaching_dropoff") {
+			msg := "Próximo ao destino — " + delivery.Street
+			sim.emitMilestone(courierID, delivery.ID, "approaching_dropoff", msg, domain.StatusInTransit, now)
+		}
+	}
+}
+
+func (sim *Simulator) emitMilestone(
+	courierID, deliveryID, eventType, message string,
+	status domain.DeliveryStatus,
+	now time.Time,
+) {
+	sim.store.SetMilestone(courierID, eventType)
+	sim.store.AppendTimeline(courierID, eventType, message, now)
+	if sim.emit == nil {
+		return
+	}
+	sim.emit("delivery_event", domain.DeliveryEventPayload{
+		DeliveryID: deliveryID,
+		CourierID:  courierID,
+		Type:       eventType,
+		Message:    message,
+		Status:     status,
+		Timestamp:  now,
+	})
 }
 
 func (sim *Simulator) computeETA(c *domain.Courier) int {
@@ -195,4 +296,14 @@ func (sim *Simulator) computeETA(c *domain.Courier) int {
 // TickOnce exposes a single tick for tests.
 func (sim *Simulator) TickOnce() {
 	sim.tick()
+}
+
+func (sim *Simulator) TickN(n int) {
+	for i := 0; i < n; i++ {
+		sim.tick()
+	}
+}
+
+func (sim *Simulator) Reset(sc *domain.Scenario) {
+	sim.store.Reset(sc)
 }
