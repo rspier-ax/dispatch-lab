@@ -11,15 +11,22 @@ describe('ConnectionIndicatorComponent', () => {
     fixture = TestBed.createComponent(ConnectionIndicatorComponent);
   });
 
-  it('shows connected label', () => {
+  it('shows SSE connected label', () => {
     fixture.componentRef.setInput('state', 'connected');
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Conectado');
+    expect(fixture.nativeElement.textContent).toContain('SSE conectado');
   });
 
   it('shows reconnecting label', () => {
     fixture.componentRef.setInput('state', 'reconnecting');
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Reconectando');
+    expect(fixture.nativeElement.textContent).toContain('SSE reconectando');
+  });
+
+  it('shows header variant operational label', () => {
+    fixture.componentRef.setInput('state', 'connected');
+    fixture.componentRef.setInput('variant', 'header');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Stream ativo');
   });
 });
