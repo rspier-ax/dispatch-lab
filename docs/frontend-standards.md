@@ -57,6 +57,10 @@ Every data-bound section must handle:
 
 Run `npm run test -- --watch=false` before PR.
 
+## Internationalization
+
+UI copy is pt-BR in v1. Repository documentation is English only. Planned English locale and migration notes: [guides/i18n-roadmap.md](./guides/i18n-roadmap.md).
+
 ## PR checklist
 
 - [ ] No fetch/EventSource in `components/`
