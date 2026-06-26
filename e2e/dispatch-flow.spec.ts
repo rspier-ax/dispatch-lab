@@ -38,6 +38,11 @@ test.describe('DispatchLab operator flow', () => {
 
     await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
     await expect(page.locator('.detail').getByText('Gabriela Lima', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Acompanhe o percurso: entregador → restaurante → cliente'),
+    ).toBeVisible();
+    await expect(page.locator('.journey-stepper__label', { hasText: 'Despacho' })).toBeVisible();
+    await expect(page.getByText('ETA calculando')).toHaveCount(0);
 
     const triggerRes = await request.post('http://localhost:8080/api/demo/trigger', {
       data: { courier_id: 'POA-07', action: 'go_stale' },
