@@ -1,9 +1,35 @@
 <section class="list-panel" aria-labelledby="deliveries-heading">
   <header class="list-panel__header">
     <div class="list-panel__title-row">
-      <h2 id="deliveries-heading">Entregas ativas</h2>
+      <h2 id="deliveries-heading">Entregas</h2>
       <span class="list-panel__count">{{ rows.length }}</span>
     </div>
+
+    <div class="list-panel__tabs" role="tablist" aria-label="Filtrar entregas por status">
+      <button
+        type="button"
+        role="tab"
+        class="list-panel__tab"
+        [class.list-panel__tab--active]="listTab === 'active'"
+        [attr.aria-selected]="listTab === 'active'"
+        (click)="setListTab('active')"
+      >
+        Ativas
+        <span class="list-panel__tab-count">{{ activeCount }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="list-panel__tab"
+        [class.list-panel__tab--active]="listTab === 'completed'"
+        [attr.aria-selected]="listTab === 'completed'"
+        (click)="setListTab('completed')"
+      >
+        Concluídas
+        <span class="list-panel__tab-count">{{ completedCount }}</span>
+      </button>
+    </div>
+
     <div class="list-panel__controls">
       <label class="sr-only" for="delivery-search">Buscar entregas</label>
       <input
@@ -14,24 +40,32 @@
         [(ngModel)]="searchQuery"
         autocomplete="off"
       />
-      <label class="sr-only" for="delivery-filter">Filtrar por estado</label>
-      <select
-        id="delivery-filter"
-        class="list-panel__filter"
-        [ngModel]="filter"
-        (ngModelChange)="onFilterChange($event)"
-      >
-        @for (opt of filterOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
-        }
-      </select>
+      @if (listTab === 'active') {
+        <label class="sr-only" for="delivery-filter">Filtrar por estado</label>
+        <select
+          id="delivery-filter"
+          class="list-panel__filter"
+          [ngModel]="filter"
+          (ngModelChange)="onFilterChange($event)"
+        >
+          @for (opt of filterOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      }
     </div>
   </header>
 
   @if (rows.length === 0) {
-    <p class="list-panel__empty">Nenhuma entrega corresponde aos filtros.</p>
+    <p class="list-panel__empty">
+      @if (listTab === 'active') {
+        Nenhuma entrega ativa no momento.
+      } @else {
+        Nenhuma entrega concluída ainda.
+      }
+    </p>
   } @else {
-    <ul class="delivery-list" role="listbox" aria-label="Lista de entregas">
+    <ul class="delivery-list" role="listbox" [attr.aria-label]="listAriaLabel">
       @for (row of rows; track row.delivery.id) {
         <li role="presentation">
           <button
@@ -41,6 +75,7 @@
             [class.delivery-item--live]="row.trackingState === 'live'"
             [class.delivery-item--stale]="row.trackingState === 'stale'"
             [class.delivery-item--offline]="row.trackingState === 'offline'"
+            [class.delivery-item--completed]="row.delivery.status === 'delivered'"
             [attr.aria-selected]="row.delivery.courier_id === selectedCourierId"
             role="option"
             (click)="selectCourier.emit(row.delivery.courier_id)"
@@ -50,19 +85,28 @@
               <span class="delivery-item__top">
                 <span class="delivery-item__id">{{ row.delivery.id }}</span>
                 <span class="delivery-item__badges">
-                  @if (isQueued(row.delivery, couriers)) {
+                  @if (listTab === 'active' && isQueued(row.delivery, couriers)) {
                     <span class="delivery-item__badge delivery-item__badge--queued">Na fila</span>
                   }
-                  <span class="delivery-item__badge" [class]="'delivery-item__badge--' + row.trackingState">
-                    {{ trackingLabel(row.trackingState) }}
-                  </span>
+                  @if (listTab === 'active') {
+                    <span class="delivery-item__badge" [class]="'delivery-item__badge--' + row.trackingState">
+                      {{ trackingLabel(row.trackingState) }}
+                    </span>
+                  }
                 </span>
               </span>
               <span class="delivery-item__name">{{ row.delivery.restaurant }}</span>
               <span class="delivery-item__meta">
-                <span class="delivery-item__dot" [class]="'delivery-item__dot--' + row.trackingState" aria-hidden="true"></span>
-                <span>{{ row.delivery.courier_id }} · {{ row.delivery.courier_name }}</span>
-                <span>{{ deliveryMetaLabel(row.delivery, isQueued(row.delivery, couriers)) }}</span>
+                @if (listTab === 'active') {
+                  <span class="delivery-item__dot" [class]="'delivery-item__dot--' + row.trackingState" aria-hidden="true"></span>
+                }
+                <span class="delivery-item__courier">{{ row.delivery.courier_id }} · {{ row.delivery.courier_name }}</span>
+                @let metaBadge = deliveryMetaBadge(row.delivery, isQueued(row.delivery, couriers));
+                <span
+                  [class]="'delivery-item__badge delivery-item__badge--meta delivery-item__badge--meta-' + metaBadge.tone"
+                >
+                  {{ metaBadge.label }}
+                </span>
               </span>
             </span>
           </button>

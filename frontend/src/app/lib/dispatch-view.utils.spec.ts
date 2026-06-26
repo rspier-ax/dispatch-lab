@@ -1,6 +1,6 @@
 import {
   courierMetrics,
-  deliveryMetaLabel,
+  deliveryMetaBadge,
   formatEta,
   formatEtaLabel,
   formatSignalAge,
@@ -59,17 +59,23 @@ describe('dispatch-view.utils', () => {
     expect(formatEtaLabel(120)).toBe('ETA 2 min');
   });
 
-  it('formats delivery meta label', () => {
-    expect(
-      deliveryMetaLabel({ status: 'in_transit', eta_seconds: 120 }, false),
-    ).toBe('Em rota · ETA 2 min');
-    expect(
-      deliveryMetaLabel({ status: 'in_transit', eta_seconds: 0 }, false),
-    ).toBe('Em rota · ETA indisponível');
-    expect(
-      deliveryMetaLabel({ status: 'in_transit', eta_seconds: 120 }, true),
-    ).toBe('Na fila · aguardando rota atual');
-    expect(deliveryMetaLabel({ status: 'delivered', eta_seconds: 0 }, false)).toBe('Entregue');
+  it('builds delivery meta badge for pills', () => {
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 120 }, false)).toEqual({
+      label: 'Em rota · ETA 2 min',
+      tone: 'in-transit',
+    });
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 0 }, false)).toEqual({
+      label: 'Em rota · ETA indisponível',
+      tone: 'eta-unavailable',
+    });
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 120 }, true)).toEqual({
+      label: 'Aguardando rota atual',
+      tone: 'queued-wait',
+    });
+    expect(deliveryMetaBadge({ status: 'delivered', eta_seconds: 0 }, false)).toEqual({
+      label: 'Entregue',
+      tone: 'delivered',
+    });
   });
 
   it('builds journey steps', () => {

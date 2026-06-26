@@ -48,6 +48,40 @@
   padding: 0.125rem 0.5rem;
 }
 
+.list-panel__tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.list-panel__tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.list-panel__tab--active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.list-panel__tab-count {
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  opacity: 0.85;
+}
+
 .list-panel__controls {
   display: grid;
   gap: 0.375rem;
@@ -125,6 +159,11 @@
 
 .delivery-item--offline .delivery-item__bar {
   background: var(--offline);
+}
+
+.delivery-item--completed .delivery-item__bar {
+  background: var(--live);
+  opacity: 0.55;
 }
 
 .delivery-item--selected .delivery-item__bar {
@@ -210,6 +249,50 @@
   font-size: 0.6875rem;
   color: var(--text-muted);
   flex-wrap: wrap;
+}
+
+.delivery-item__courier {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-item__badge--meta {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.delivery-item__badge--meta-queued-wait {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.delivery-item__badge--meta-delivered {
+  background: var(--live-soft);
+  color: var(--live);
+  border: 1px solid var(--live-border);
+}
+
+.delivery-item__badge--meta-picking-up {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgb(22 114 232 / 22%);
+}
+
+.delivery-item__badge--meta-in-transit {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  border: 1px solid rgb(22 114 232 / 22%);
+}
+
+.delivery-item__badge--meta-eta-unavailable {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .delivery-item__dot {

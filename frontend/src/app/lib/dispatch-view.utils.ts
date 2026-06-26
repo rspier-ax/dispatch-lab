@@ -80,15 +80,37 @@ export function formatDetailEta(seconds: number, deliveryStatus?: string): strin
   return formatEta(seconds);
 }
 
-export function deliveryMetaLabel(
+export interface DeliveryMetaBadge {
+  label: string;
+  tone: 'queued-wait' | 'delivered' | 'picking-up' | 'in-transit' | 'eta-unavailable';
+}
+
+export function deliveryMetaBadge(
   delivery: { status: string; eta_seconds: number },
   queued: boolean,
-): string {
-  if (queued) return 'Na fila · aguardando rota atual';
-  if (delivery.status === 'delivered') return 'Entregue';
-  const phase = deliveryPhaseLabel(delivery.status);
-  if (delivery.eta_seconds > 0) return `${phase} · ETA ${formatEta(delivery.eta_seconds)}`;
-  return `${phase} · ETA indisponível`;
+): DeliveryMetaBadge {
+  if (queued) {
+    return { label: 'Aguardando rota atual', tone: 'queued-wait' };
+  }
+  if (delivery.status === 'delivered') {
+    return { label: 'Entregue', tone: 'delivered' };
+  }
+  if (delivery.status === 'picking_up') {
+    if (delivery.eta_seconds > 0) {
+      return {
+        label: `Coletando · ETA ${formatEta(delivery.eta_seconds)}`,
+        tone: 'picking-up',
+      };
+    }
+    return { label: 'Coletando · ETA indisponível', tone: 'eta-unavailable' };
+  }
+  if (delivery.eta_seconds > 0) {
+    return {
+      label: `Em rota · ETA ${formatEta(delivery.eta_seconds)}`,
+      tone: 'in-transit',
+    };
+  }
+  return { label: 'Em rota · ETA indisponível', tone: 'eta-unavailable' };
 }
 
 export type JourneyStepState = 'pending' | 'current' | 'done';
