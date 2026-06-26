@@ -44,6 +44,7 @@ Every data-bound section must handle:
 ## Map conventions
 
 - Leaflet map centered on Mercado Público (`-30.0277, -51.2284`), zoom 15.
+- Base tiles: **Carto Positron** (`basemaps.cartocdn.com/light_all`) — lighter POI noise than OSM standard at dispatch zoom levels.
 - Marker colors: green = `live`, amber = `stale`, gray = `offline`.
 - Selected courier: highlighted marker + route polyline.
 
