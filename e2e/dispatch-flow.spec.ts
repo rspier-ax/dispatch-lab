@@ -16,7 +16,9 @@ test.describe('DispatchLab operator flow', () => {
       timeout: 30_000,
     });
 
-    await expect(page.getByRole('heading', { name: /Entregas ativas/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Entregas$/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Ativas/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Concluídas/i })).toBeVisible();
     await expect(page.getByText('Atualizações em tempo real ativas')).toHaveCount(0);
     await expect(page.locator('app-dispatch-footer')).toHaveCount(0);
     await expect(page.getByText('Demo v1.0.0')).toBeVisible();
