@@ -15,13 +15,11 @@
 
     <div class="demo-center__status" aria-live="polite">
       <div class="demo-center__status-row">
-        <span class="mono demo-center__status-time">{{ simulationTimeLabel }}</span>
-        <span class="mono demo-center__tick">Tick {{ tick }}</span>
+        <span class="demo-center__live-badge">Ao vivo</span>
+        <span class="demo-center__status-elapsed">Tempo de operação · {{ elapsedLabel }}</span>
+        <span class="mono demo-center__tick">tick {{ tick }}</span>
       </div>
-      <p class="demo-center__next">{{ nextScriptLabel }}</p>
-      <div class="demo-center__progress" role="progressbar" [attr.aria-valuenow]="progressPercent">
-        <div class="demo-center__progress-bar" [style.width.%]="progressPercent"></div>
-      </div>
+      <p class="demo-center__next">{{ sessionStatusLabel }}</p>
     </div>
 
     <div class="demo-center__tabs" role="tablist" aria-label="Seções da Central da Demo">
@@ -43,31 +41,24 @@
       <div class="demo-center__tab-panel" [class.demo-center__tab-panel--events]="activeTab === 'events'">
       @switch (activeTab) {
         @case ('control') {
-          <div class="demo-center__selectors">
-            <label class="demo-center__field">
-              <span>Cenário ativo</span>
-              <select disabled aria-disabled="true">
-                <option>Operação Centro POA</option>
-              </select>
-            </label>
-            <label class="demo-center__field">
-              <span>Entregador em foco</span>
-              <select [value]="focusCourierId" (change)="onFocusChange($any($event.target).value)">
-                @for (c of couriers; track c.id) {
-                  <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
-                }
-              </select>
-            </label>
-          </div>
-
           <section class="demo-center__section">
+            <p class="demo-center__hint">
+              @if (selectedCourierId) {
+                Alvo: <strong>{{ selectedCourierId }}</strong>
+                @if (selectedCourier) {
+                  · {{ selectedCourier.name }}
+                }
+              } @else {
+                Selecione um entregador no mapa ou na lista para simulações rápidas.
+              }
+            </p>
             <h3>Simulações rápidas</h3>
-            <div class="demo-center__quick-grid">
+            <div class="demo-center__quick-grid demo-center__quick-grid--pair">
               <button
                 type="button"
                 class="demo-center__quick"
-                [disabled]="!controlsEnabled"
-                [title]="controlsEnabled ? 'Forçar sinal atrasado' : demoControlsHint"
+                [disabled]="!canForceStale"
+                [title]="staleButtonTitle"
                 (click)="onTriggerStale()"
               >
                 Forçar sinal atrasado
@@ -75,26 +66,12 @@
               <button
                 type="button"
                 class="demo-center__quick"
-                [disabled]="!controlsEnabled"
-                [title]="controlsEnabled ? 'Reconectar' : demoControlsHint"
+                [disabled]="!canReconnect"
+                [title]="reconnectButtonTitle"
                 (click)="onTriggerReconnect()"
               >
                 Reconectar
               </button>
-              <button type="button" class="demo-center__quick" disabled [title]="comingSoon">Sem sinal</button>
-              <button type="button" class="demo-center__quick" disabled [title]="comingSoon">Resetar rota</button>
-            </div>
-          </section>
-
-          <section class="demo-center__section">
-            <h3>Eventos automáticos</h3>
-            <div class="demo-center__toggle-grid">
-              @for (label of ['Perda de sinal', 'Reconexão automática', 'Atualização de ETA', 'Alertas SSE']; track label) {
-                <label class="demo-center__toggle demo-center__toggle--disabled" [title]="comingSoon">
-                  <input type="checkbox" disabled [checked]="label !== 'Perda de sinal'" />
-                  <span><strong>{{ label }}</strong></span>
-                </label>
-              }
             </div>
           </section>
 
@@ -119,36 +96,39 @@
               </label>
             </div>
           </section>
-
-          <section class="demo-center__section demo-center__playback">
-            <div class="demo-center__playback-head">
-              <span>Tempo da simulação</span>
-            </div>
-            <input type="range" class="demo-center__slider" min="0" max="90" [value]="tick" disabled [title]="seekHint" />
-            <div class="demo-center__playback-meta">
-              <div class="demo-center__speed">
-                <button type="button" class="demo-center__speed-btn demo-center__speed-btn--active">x1</button>
-                <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x2</button>
-                <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x5</button>
-              </div>
-            </div>
-          </section>
         }
 
         @case ('scenarios') {
           <section class="demo-center__section">
-            <p class="demo-center__hint">Selecione um cenário e clique em <strong>Aplicar cenário</strong>.</p>
+            <div class="demo-center__mode-banner" aria-live="polite">
+              <strong>Modo atual · Operação ao vivo</strong>
+              <span>{{ sessionStatusLabel }}</span>
+            </div>
+
+            @if (scenarioFeedback) {
+              <p class="demo-center__feedback" role="status">{{ scenarioFeedback }}</p>
+            }
+
             <div class="demo-center__scenarios">
               @for (scenario of scenarios; track scenario.id) {
-                <button
-                  type="button"
-                  class="demo-center__scenario"
-                  [class.demo-center__scenario--selected]="selectedScenarioId === scenario.id"
-                  (click)="selectScenario(scenario)"
-                >
-                  <strong>{{ scenario.title }}</strong>
-                  <span>{{ scenario.description }}</span>
-                </button>
+                <article class="demo-center__scenario-card">
+                  <div class="demo-center__scenario-card-text">
+                    <strong>{{ scenario.title }}</strong>
+                    <span>{{ scenario.description }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="demo-center__scenario-run"
+                    [disabled]="footerBusy || !!runningScenarioId"
+                    (click)="runScenario(scenario)"
+                  >
+                    @if (isScenarioRunning(scenario.id)) {
+                      Executando…
+                    } @else {
+                      Executar
+                    }
+                  </button>
+                </article>
               }
             </div>
           </section>
@@ -204,23 +184,15 @@
       </div>
     </div>
 
-    <footer class="demo-center__footer">
+    <footer class="demo-center__footer demo-center__footer--solo">
       <button
         type="button"
-        class="demo-center__reset"
+        class="demo-center__reset demo-center__reset--full"
         [disabled]="!controlsEnabled || footerBusy"
         [title]="controlsEnabled ? 'Resetar cenário' : demoControlsHint"
         (click)="onResetDemo()"
       >
         Resetar demo
-      </button>
-      <button
-        type="button"
-        class="demo-center__apply"
-        [disabled]="!hasPendingScenarioChange || footerBusy"
-        (click)="onApplyScenario()"
-      >
-        Aplicar cenário
       </button>
     </footer>
 

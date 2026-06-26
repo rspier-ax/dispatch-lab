@@ -93,13 +93,23 @@ func (sim *Simulator) applyScripts(tick int, now time.Time) {
 }
 
 func (sim *Simulator) TriggerAction(courierID, action string) bool {
+	c, ok := sim.store.GetCourier(courierID)
+	if !ok {
+		return false
+	}
 	now := time.Now().UTC()
 	switch action {
 	case "go_stale":
+		if c.TrackingState != domain.TrackingLive {
+			return false
+		}
 		sim.setTrackingState(courierID, domain.TrackingStale, now,
 			"Sinal GPS instável — última posição conhecida na Rua dos Andradas")
 		return true
 	case "reconnect":
+		if c.TrackingState != domain.TrackingStale {
+			return false
+		}
 		sim.setTrackingState(courierID, domain.TrackingLive, now,
 			"Conexão restabelecida — retomando transmissão de posição")
 		return true

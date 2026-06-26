@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, effect, signal } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { DispatchFacadeService } from './dispatch-facade.service';
@@ -9,10 +9,23 @@ import { DispatchHeaderComponent } from '../../components/header/dispatch-header
 import { DispatchBootComponent } from '../../components/boot/dispatch-boot.component';
 import { DispatchStreamService } from '../../services/dispatch/dispatch-stream.service';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
-import { Courier, CourierDetail, Delivery, DeliveryEventPayload, DemoInfo, Landmark, ScenarioApplyResult } from '../../services/dispatch/types';
+import {
+  Courier,
+  CourierDetail,
+  Delivery,
+  DeliveryEventPayload,
+  DemoInfo,
+  Landmark,
+  ScenarioApplyResult,
+} from '../../services/dispatch/types';
 import { firstValueFrom } from 'rxjs';
-import { courierMetrics, CourierMetrics, TrackingFilter } from '../../lib/dispatch-view.utils';
-import { DEFAULT_DEMO_MAP_PREFS, DemoMapPrefs, FALLBACK_DEMO_INFO } from '../../lib/demo.constants';
+import {
+  courierMetrics,
+  CourierMetrics,
+  DeliveryPhaseFilter,
+  TrackingFilter,
+} from '../../lib/dispatch-view.utils';
+import { DEFAULT_DEMO_MAP_PREFS, DemoMapPrefs, DEMO_RESET_MIN_MS, FALLBACK_DEMO_INFO } from '../../lib/demo.constants';
 
 @Component({
   selector: 'app-dispatch-page',
@@ -43,11 +56,38 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   streamEvents: DeliveryEventPayload[] = [];
   demoCenterOpen = false;
   demoMapPrefs: DemoMapPrefs = { ...DEFAULT_DEMO_MAP_PREFS };
+  demoResetting = signal(false);
+  deliveryPhaseFilterOverride = signal<DeliveryPhaseFilter | null>(null);
 
   private sub?: Subscription;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
   private demoInfoRetryTimer?: ReturnType<typeof setTimeout>;
   private lastTrackingState: string | null = null;
+
+  readonly refreshDemo = async (): Promise<void> => {
+    this.demoResetting.set(true);
+    const startedAt = Date.now();
+    try {
+      this.onCloseDetail();
+      this.demoMapPrefs = { ...DEFAULT_DEMO_MAP_PREFS };
+      this.deliveryPhaseFilterOverride.set(null);
+      await this.facade.init();
+      this.landmarks = this.facade.snapshot()?.landmarks ?? [];
+      await this.loadDemoInfo();
+      this.simTick = this.demoInfo?.tick ?? 0;
+    } finally {
+      const remaining = DEMO_RESET_MIN_MS - (Date.now() - startedAt);
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+      this.demoResetting.set(false);
+    }
+  };
+
+  readonly reloadDemoInfo = async (): Promise<void> => {
+    await this.loadDemoInfo();
+    this.simTick = this.demoInfo?.tick ?? this.simTick;
+  };
 
   constructor(
     readonly facade: DispatchFacadeService,
@@ -126,26 +166,19 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   }
 
   onScenarioApplied(result: ScenarioApplyResult): void {
+    if (result.queue_focus) {
+      this.deliveryPhaseFilterOverride.set('queued');
+    }
     if (result.focused_courier_id) {
       this.onSelect(result.focused_courier_id);
     }
     if (result.fit_map) {
       this.dispatchMap?.fitOperationArea();
     }
-    if (result.reset_performed) {
-      void this.onDemoRefreshed();
-    } else {
-      void this.loadDemoInfo();
-    }
-    this.demoCenterOpen = false;
   }
 
   onToggleDemoCenter(): void {
     this.demoCenterOpen = !this.demoCenterOpen;
-  }
-
-  onOpenDemoCenter(): void {
-    this.demoCenterOpen = true;
   }
 
   onCloseDemoCenter(): void {
@@ -156,15 +189,8 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
     this.demoMapPrefs = prefs;
   }
 
-  onDemoFocusCourier(id: string): void {
-    this.onSelect(id);
-  }
-
-  async onDemoRefreshed(): Promise<void> {
-    await this.facade.init();
-    this.landmarks = this.facade.snapshot()?.landmarks ?? [];
-    await this.loadDemoInfo();
-    this.simTick = this.demoInfo?.tick ?? this.simTick;
+  bootMessage(): string {
+    return this.demoResetting() ? 'Reiniciando demo…' : 'Carregando operação…';
   }
 
   private async loadDemoInfo(): Promise<void> {

@@ -1,5 +1,5 @@
-@if (facade.loading()) {
-  <app-dispatch-boot />
+@if (facade.loading() || demoResetting()) {
+  <app-dispatch-boot [message]="bootMessage()" />
 } @else if (facade.error()) {
   <div class="dispatch-error" role="alert">
     <p>{{ facade.error() }}</p>
@@ -22,6 +22,7 @@
           [couriers]="couriers"
           [selectedCourierId]="facade.selectedCourierId()"
           [filter]="mapFilter"
+          [externalPhaseFilter]="deliveryPhaseFilterOverride()"
           (selectCourier)="onSelect($event)"
           (filterChange)="onFilterChange($event)"
         />
@@ -39,14 +40,14 @@
           [demoTick]="simTick"
           [demoEvents]="streamEvents"
           [demoMapPrefs]="demoMapPrefs"
+          [refreshDemo]="refreshDemo"
+          [reloadDemoInfo]="reloadDemoInfo"
           (filterChange)="onFilterChange($event)"
           (selectCourier)="onSelect($event)"
           (toggleDemoCenter)="onToggleDemoCenter()"
           (demoClosed)="onCloseDemoCenter()"
-          (demoFocusCourier)="onDemoFocusCourier($event)"
           (demoApplyScenario)="onScenarioApplied($event)"
           (demoMapPrefsChange)="onDemoMapPrefsChange($event)"
-          (demoRefreshed)="onDemoRefreshed()"
         />
         <div class="dispatch-detail-column">
           <app-courier-detail

@@ -8,8 +8,8 @@
   ></div>
 
   <div class="map-overlay map-overlay--top-left">
-    <button type="button" class="map-btn" aria-label="Ajustar operação ao bounds do cenário" (click)="fitOperationArea()">
-      Ajustar operação
+    <button type="button" class="map-btn" aria-label="Enquadrar mapa na área do Centro Histórico" (click)="fitOperationArea()">
+      Enquadrar mapa
     </button>
     <button
       type="button"
@@ -60,10 +60,10 @@
     [couriers]="couriers"
     [selectedCourierId]="selectedId"
     [mapPrefs]="demoMapPrefs"
+    [refreshDemo]="refreshDemo"
+    [reloadDemoInfo]="reloadDemoInfo"
     (closed)="demoClosed.emit()"
-    (focusCourier)="demoFocusCourier.emit($event)"
     (applyScenario)="demoApplyScenario.emit($event)"
     (mapPrefsChange)="demoMapPrefsChange.emit($event)"
-    (refreshed)="demoRefreshed.emit()"
   />
 </div>

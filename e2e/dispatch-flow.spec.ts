@@ -17,70 +17,53 @@ test.describe('DispatchLab operator flow', () => {
     });
 
     await expect(page.getByRole('heading', { name: /^Entregas$/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Ativas/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Concluídas/i })).toBeVisible();
-    await expect(page.getByText('Atualizações em tempo real ativas')).toHaveCount(0);
-    await expect(page.locator('app-dispatch-footer')).toHaveCount(0);
-    await expect(page.getByText('Demo v1.0.0')).toBeVisible();
-    await expect(page.getByText('Centro Histórico · POA Centro')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enquadrar mapa' })).toBeVisible();
 
     await page.getByRole('button', { name: /Central da demo/i }).click();
     const demoPanel = page.getByRole('complementary', { name: /Central da Demo/i });
     await expect(demoPanel.getByRole('heading', { name: 'Central da Demo' })).toBeVisible();
-    await expect(demoPanel.getByText(/Tick \d+/)).toBeVisible();
-    await expect(demoPanel.getByText(/Ao vivo/)).toBeVisible();
-
-    await expect(demoPanel.getByRole('tab', { name: 'Controle' })).toBeVisible();
+    await expect(demoPanel.getByText(/tick \d+/)).toBeVisible();
+    await expect(demoPanel.getByText('Ao vivo')).toBeVisible();
 
     await demoPanel.getByRole('button', { name: 'Resetar demo' }).click();
     await expect(page.getByRole('dialog', { name: /Resetar demo/i })).toBeVisible();
-    await expect(page.getByText(/tick 0/i)).toBeVisible();
+    await expect(page.getByText(/Novo plano de eventos será sorteado/i)).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar reset' }).click();
-    await expect(demoPanel.getByText('Tick 0')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Reiniciando demo…')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByLabel('Carregando operação POA Centro')).toBeHidden({ timeout: 30_000 });
+    await expect(demoPanel.getByText('tick 0')).toBeVisible({ timeout: 15_000 });
 
     await demoPanel.getByRole('tab', { name: 'Cenários' }).click();
-    await expect(demoPanel.getByText('POA-07 — sinal atrasado')).toBeVisible();
-    await expect(demoPanel.getByRole('button', { name: 'Aplicar cenário' })).toBeDisabled();
+    await expect(demoPanel.getByText('Modo atual · Operação ao vivo')).toBeVisible();
+    await expect(demoPanel.getByText('Surpresa de rede')).toBeVisible();
 
-    await demoPanel.getByRole('tab', { name: 'Eventos' }).click();
-    await expect(demoPanel.getByText('Filtrar por entregador')).toBeVisible();
+    const exploreCard = demoPanel.locator('.demo-center__scenario-card', { hasText: 'Enquadrar mapa' });
+    await exploreCard.getByRole('button', { name: 'Executar' }).click();
+    await expect(demoPanel).toBeVisible();
+    await expect(demoPanel.getByText(/Mapa enquadrado/i)).toBeVisible({ timeout: 10_000 });
 
-    await demoPanel.getByRole('tab', { name: 'Cenários' }).click();
-    await demoPanel.getByText('Explorar rotas nas ruas').click();
-    await expect(demoPanel.getByRole('button', { name: 'Aplicar cenário' })).toBeEnabled();
-    await demoPanel.getByRole('button', { name: 'Aplicar cenário' }).click();
+    const surpriseCard = demoPanel.locator('.demo-center__scenario-card', { hasText: 'Surpresa de rede' });
+    await surpriseCard.getByRole('button', { name: 'Executar' }).click();
     await expect(page.getByRole('dialog', { name: /Aplicar cenário/i })).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar' }).click();
-    await expect(demoPanel).toBeHidden();
+    await expect(demoPanel).toBeVisible();
+    await expect(demoPanel.getByText(/evento/i)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('button', { name: /Central da demo/i }).click();
-    await demoPanel.getByRole('tab', { name: 'Cenários' }).click();
-    await demoPanel.getByText('POA-07 — sinal atrasado').click();
-    await demoPanel.getByRole('button', { name: 'Aplicar cenário' }).click();
-    await page.getByRole('button', { name: 'Confirmar' }).click();
-    await expect(demoPanel).toBeHidden();
-
-    await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
-    await expect(page.locator('.detail').getByText('Gabriela Lima', { exact: true })).toBeVisible();
-    await expect(
-      page.getByText('Acompanhe o percurso: entregador → restaurante → cliente'),
-    ).toBeVisible();
-    await expect(page.locator('.journey-stepper__label', { hasText: 'Despacho' })).toBeVisible();
-    await expect(page.getByText('ETA calculando')).toHaveCount(0);
+    await demoPanel.getByRole('tab', { name: 'Controle' }).click();
+    await expect(demoPanel.getByText(/Selecione um entregador/i)).toBeVisible();
 
     const triggerRes = await request.post('http://localhost:8080/api/demo/trigger', {
       data: { courier_id: 'POA-07', action: 'go_stale' },
     });
     if (triggerRes.ok()) {
-      await expect(page.locator('.detail').getByRole('alert')).toContainText('Sinal atrasado', {
-        timeout: 10_000,
-      });
+      await page.locator('.delivery-item').filter({ hasText: 'POA-07' }).first().click();
+      await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
+      await expect(demoPanel.getByRole('button', { name: 'Forçar sinal atrasado' })).toBeDisabled();
 
       const reconnectRes = await request.post('http://localhost:8080/api/demo/trigger', {
         data: { courier_id: 'POA-07', action: 'reconnect' },
       });
       expect(reconnectRes.ok()).toBeTruthy();
-      await expect(page.locator('.detail .badge--live')).toBeVisible({ timeout: 10_000 });
     }
   });
 });

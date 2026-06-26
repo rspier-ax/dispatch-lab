@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/rspier-ax/dispatch-lab/backend/internal/demo"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/domain"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/scenario"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/store"
@@ -15,42 +16,43 @@ type scenarioDef struct {
 	id          string
 	title       string
 	description string
-	kind        string // visual | scripted | random_scripted
+	kind        string // visual | random_scripted
 	courierID   string
 	deliveryID  string
-	fixedScripts []domain.ScriptAction
+	planOpts    *demo.PlanOptions
 }
 
 func scenarioRegistry() []scenarioDef {
 	return []scenarioDef{
 		{
-			id:          "poa07_stale",
-			title:       "POA-07 — sinal atrasado",
-			description: "Selecione DEL-007 e aguarde o tick 45 (~45s) para ver o entregador ficar com sinal atrasado na Rua dos Andradas.",
-			kind:        "scripted",
-			courierID:   "POA-07",
-			deliveryID:  "DEL-007",
-			fixedScripts: []domain.ScriptAction{
-				{CourierID: "POA-07", Tick: 45, Action: "go_stale"},
-				{CourierID: "POA-07", Tick: 90, Action: "reconnect"},
-			},
-		},
-		{
-			id:          "random_stale",
-			title:       "Sinal atrasado — entregador aleatório",
-			description: "Escolhe um entregador ao vivo e agenda perda de sinal e reconexão nos próximos ticks.",
+			id:          "network_surprise",
+			title:       "Surpresa de rede",
+			description: "Agenda 2–4 eventos de sinal atrasado/reconexão em entregadores ao vivo. Use para criar tensão durante a apresentação.",
 			kind:        "random_scripted",
 		},
 		{
+			id:          "double_stale",
+			title:       "Dois entregadores",
+			description: "Dois entregadores perdem sinal em sequência rápida — ideal para mostrar impacto na lista de entregas.",
+			kind:        "random_scripted",
+			planOpts:    &demo.PlanOptions{ForceTwoCouriers: true, CloserTicks: true},
+		},
+		{
 			id:          "explore_routes",
-			title:       "Explorar rotas nas ruas",
-			description: "Selecione qualquer entregador ao vivo e observe a rota restante seguindo o grid viário do Centro Histórico.",
+			title:       "Enquadrar mapa",
+			description: "Centraliza o mapa na área do Centro Histórico. Use no início da demo para contextualizar a operação.",
 			kind:        "visual",
 		},
 		{
 			id:          "tracking_states",
 			title:       "Estados de tracking",
-			description: "Compare badges Ao vivo, Sinal atrasado e Sem sinal na lista e no mapa.",
+			description: "Foca um entregador com sinal atrasado (se houver) e abre a aba Controle para comparar badges e simulações manuais.",
+			kind:        "visual",
+		},
+		{
+			id:          "queue_focus",
+			title:       "Fila na operação",
+			description: "Filtra a lista de entregas para mostrar apenas itens na fila — entregas aguardando rota do entregador.",
 			kind:        "visual",
 		},
 	}
@@ -80,9 +82,9 @@ func demoScenarios() []domain.DemoScenario {
 }
 
 type scenarioRequest struct {
-	ScenarioID string `json:"scenario_id"`
-	CourierID  string `json:"courier_id,omitempty"`
-	ConfirmReset bool `json:"confirm_reset,omitempty"`
+	ScenarioID   string `json:"scenario_id"`
+	CourierID    string `json:"courier_id,omitempty"`
+	ConfirmReset bool   `json:"confirm_reset,omitempty"`
 }
 
 func (a *API) handleDemoPreviewScenario(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +97,7 @@ func (a *API) handleDemoPreviewScenario(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID)
+	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID, a.SessionNonce, previewNonce(a.SessionNonce, req.ScenarioID))
 	writeJSON(w, http.StatusOK, preview)
 }
 
@@ -110,7 +112,16 @@ func (a *API) handleDemoApplyScenario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID)
+	def, ok := findScenarioDef(req.ScenarioID)
+	if !ok {
+		writeJSON(w, http.StatusConflict, domain.ScenarioPreview{
+			CanApply:    false,
+			BlockReason: "Cenário desconhecido.",
+		})
+		return
+	}
+
+	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID, a.SessionNonce, previewNonce(a.SessionNonce, req.ScenarioID))
 	if !preview.CanApply {
 		writeJSON(w, http.StatusConflict, preview)
 		return
@@ -120,32 +131,98 @@ func (a *API) handleDemoApplyScenario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result := applyScenario(a, def, preview, req.ConfirmReset)
+	writeJSON(w, http.StatusOK, result)
+}
+
+func previewNonce(sessionNonce int, scenarioID string) int {
+	def, ok := findScenarioDef(scenarioID)
+	if ok && def.kind == "random_scripted" {
+		return sessionNonce + 1
+	}
+	return sessionNonce
+}
+
+func applyScenario(a *API, def scenarioDef, preview domain.ScenarioPreview, confirmReset bool) domain.ScenarioApplyResult {
 	result := domain.ScenarioApplyResult{
 		FocusedCourierID: preview.FocusedCourierID,
 		DeliveryID:       preview.DeliveryID,
 		FitMap:           preview.FitMap,
-		Scripts:          preview.Scripts,
+		UIHint:           uiHintFromPreview(def.id, preview),
 	}
 
-	if preview.RequiresReset {
-		sc, err := scenario.Load()
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
+	switch def.kind {
+	case "random_scripted":
+		if preview.RequiresReset && confirmReset {
+			sc, err := scenario.Load()
+			if err != nil {
+				return result
+			}
+			a.Sim.Reset(sc)
+			a.SessionNonce++
+			result.ResetPerformed = true
+			scripts := demo.RollSessionPlan(sc.Seed, a.SessionNonce, 0, demo.LiveCourierIDs(a.Store), def.planOpts)
+			a.Store.SetScripts(scripts)
+			result.Scripts = scripts
+			result.UIHint = summarizeUIHint(scripts, 0, 1000)
+		} else {
+			a.SessionNonce++
+			tick := a.Store.Tick()
+			scripts := demo.RollSessionPlan(a.Store.Scenario().Seed, a.SessionNonce, tick, demo.LiveCourierIDs(a.Store), def.planOpts)
+			a.Store.SetScripts(scripts)
+			result.Scripts = scripts
+			result.UIHint = summarizeUIHint(scripts, tick, 1000)
 		}
-		a.Sim.Reset(sc)
-		result.ResetPerformed = true
+
+	case "visual":
+		switch def.id {
+		case "explore_routes":
+			result.FitMap = true
+			result.UIHint = "Mapa enquadrado na área do Centro Histórico."
+		case "tracking_states":
+			if id := firstStaleCourierID(a.Store); id != "" {
+				result.FocusedCourierID = id
+				result.DeliveryID = primaryDeliveryID(a.Store, id)
+			}
+			result.OpenControlTab = true
+			result.UIHint = "Aba Controle aberta — use Forçar sinal atrasado no entregador selecionado."
+		case "queue_focus":
+			n := queuedDeliveryCount(a.Store)
+			result.QueueFocus = true
+			result.UIHint = fmt.Sprintf("Lista filtrada: %d entrega(s) na fila.", n)
+		}
 	}
 
-	if len(preview.Scripts) > 0 {
-		a.Store.SetScripts(preview.Scripts)
-		result.Scripts = preview.Scripts
-	}
-
-	writeJSON(w, http.StatusOK, result)
+	return result
 }
 
-func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string) domain.ScenarioPreview {
+func uiHintFromPreview(scenarioID string, preview domain.ScenarioPreview) string {
+	if len(preview.SummaryLines) > 0 {
+		switch scenarioID {
+		case "network_surprise", "double_stale":
+			return preview.SummaryLines[0]
+		case "explore_routes":
+			return "Mapa enquadrado na área do Centro Histórico."
+		case "queue_focus":
+			for _, line := range preview.SummaryLines {
+				if len(line) > 10 {
+					return line
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func summarizeUIHint(scripts []domain.ScriptAction, tick, intervalMS int) string {
+	lines := demo.SummarizeScripts(scripts, tick, intervalMS)
+	if len(lines) > 0 {
+		return lines[0]
+	}
+	return "Eventos de rede agendados."
+}
+
+func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string, sessionNonce, rollNonce int) domain.ScenarioPreview {
 	def, ok := findScenarioDef(scenarioID)
 	if !ok {
 		return domain.ScenarioPreview{
@@ -160,44 +237,49 @@ func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string) d
 
 	switch def.kind {
 	case "visual":
-		lines := []string{def.description}
-		preview := domain.ScenarioPreview{
-			CanApply:     true,
-			SummaryLines: lines,
-		}
-		if def.id == "explore_routes" {
-			preview.FitMap = true
-			preview.SummaryLines = append([]string{"Ajustará a visão do mapa para a área de operação."}, lines...)
-		}
-		if def.id == "tracking_states" {
-			preview.SummaryLines = append([]string{
-				"Use a lista de entregas e o mapa para comparar estados de tracking.",
-				"Dica: use “Forçar sinal atrasado” na aba Controle para simular manualmente.",
-			}, lines...)
-		}
-		return preview
-
-	case "scripted":
-		scripts := append([]domain.ScriptAction(nil), def.fixedScripts...)
-		return previewForScripts(st, def.courierID, def.deliveryID, scripts, tick, intervalMS)
+		return previewForVisual(def, st)
 
 	case "random_scripted":
-		courierID := courierOverride
-		if courierID == "" {
-			courierID = pickRandomLiveCourier(st, seed, tick)
-		}
-		if courierID == "" {
+		live := demo.LiveCourierIDs(st)
+		if len(live) == 0 {
 			return domain.ScenarioPreview{
 				CanApply:    false,
 				BlockReason: "Nenhum entregador ao vivo disponível para este cenário.",
 			}
 		}
-		scripts := []domain.ScriptAction{
-			{CourierID: courierID, Tick: tick + 20, Action: "go_stale"},
-			{CourierID: courierID, Tick: tick + 50, Action: "reconnect"},
+		if def.id == "double_stale" && len(live) < 2 {
+			return domain.ScenarioPreview{
+				CanApply:    false,
+				BlockReason: "São necessários pelo menos 2 entregadores ao vivo para este cenário.",
+			}
 		}
-		deliveryID := primaryDeliveryID(st, courierID)
-		return previewForScripts(st, courierID, deliveryID, scripts, tick, intervalMS)
+
+		baseTick := tick
+		pastScript := scriptsWouldBePast(st, rollNonce, baseTick, seed, live, def.planOpts)
+		if pastScript {
+			baseTick = 0
+		}
+
+		scripts := demo.RollSessionPlan(seed, rollNonce, baseTick, live, def.planOpts)
+		focused := firstScriptCourier(scripts)
+		if courierOverride != "" {
+			focused = courierOverride
+		}
+		deliveryID := primaryDeliveryID(st, focused)
+
+		lines := demo.SummarizeScripts(scripts, tick, intervalMS)
+		if pastScript {
+			lines = append([]string{"Reiniciará a simulação para reagendar os eventos."}, lines...)
+		}
+
+		return domain.ScenarioPreview{
+			CanApply:         true,
+			SummaryLines:     lines,
+			FocusedCourierID: focused,
+			DeliveryID:       deliveryID,
+			Scripts:          scripts,
+			RequiresReset:    pastScript,
+		}
 
 	default:
 		return domain.ScenarioPreview{
@@ -207,74 +289,100 @@ func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string) d
 	}
 }
 
-func previewForScripts(
-	st *store.Store,
-	courierID, deliveryID string,
-	scripts []domain.ScriptAction,
-	tick, intervalMS int,
-) domain.ScenarioPreview {
-	lines := []string{
-		fmt.Sprintf("Focará o entregador %s.", courierID),
-	}
-	if deliveryID != "" {
-		lines = append(lines, fmt.Sprintf("Entrega associada: %s.", deliveryID))
-	}
-
-	pastScript := false
+func firstScriptCourier(scripts []domain.ScriptAction) string {
 	for _, sc := range scripts {
-		action := scriptActionLabel(sc.Action)
-		secs := (sc.Tick - tick) * intervalMS / 1000
-		if sc.Tick <= tick {
-			pastScript = true
-			lines = append(lines, fmt.Sprintf("%s · %s no tick %d (já passou).", sc.CourierID, action, sc.Tick))
-		} else {
-			lines = append(lines, fmt.Sprintf("%s · %s no tick %d (~%ds).", sc.CourierID, action, sc.Tick, secs))
+		if sc.Action == "go_stale" {
+			return sc.CourierID
 		}
 	}
+	if len(scripts) > 0 {
+		return scripts[0].CourierID
+	}
+	return ""
+}
 
+func previewForVisual(def scenarioDef, st *store.Store) domain.ScenarioPreview {
+	lines := []string{def.description}
 	preview := domain.ScenarioPreview{
-		CanApply:         true,
-		SummaryLines:     lines,
-		FocusedCourierID: courierID,
-		DeliveryID:       deliveryID,
-		Scripts:          scripts,
+		CanApply:     true,
+		SummaryLines: lines,
 	}
 
-	if pastScript {
-		preview.RequiresReset = true
-		preview.SummaryLines = append([]string{
-			"Reiniciará a simulação para reagendar os scripts.",
-		}, preview.SummaryLines...)
+	switch def.id {
+	case "explore_routes":
+		preview.FitMap = true
+		preview.SummaryLines = []string{
+			"Enquadrará o mapa na área do Centro Histórico.",
+			def.description,
+		}
+	case "tracking_states":
+		staleID := firstStaleCourierID(st)
+		if staleID != "" {
+			preview.FocusedCourierID = staleID
+			preview.DeliveryID = primaryDeliveryID(st, staleID)
+			preview.SummaryLines = []string{
+				fmt.Sprintf("Focará %s (sinal atrasado) e abrirá a aba Controle.", staleID),
+				"Use Forçar sinal atrasado / Reconectar no entregador selecionado.",
+			}
+		} else {
+			preview.SummaryLines = []string{
+				"Abrirá a aba Controle para comparar badges na lista e no mapa.",
+				"Selecione um entregador ao vivo e use Forçar sinal atrasado para simular.",
+			}
+		}
+	case "queue_focus":
+		queued := queuedDeliveryCount(st)
+		if queued == 0 {
+			return domain.ScenarioPreview{
+				CanApply:    false,
+				BlockReason: "Não há entregas na fila no momento.",
+			}
+		}
+		preview.SummaryLines = []string{
+			fmt.Sprintf("Filtrará a lista para %d entrega(s) na fila.", queued),
+			"Nenhum script automático será agendado.",
+		}
 	}
-
 	return preview
 }
 
-func scriptActionLabel(action string) string {
-	switch action {
-	case "go_stale":
-		return "sinal atrasado"
-	case "reconnect":
-		return "reconexão"
-	default:
-		return action
-	}
-}
-
-func pickRandomLiveCourier(st *store.Store, seed, tick int) string {
-	couriers := st.Couriers()
-	var live []domain.Courier
-	for _, c := range couriers {
-		if c.TrackingState == domain.TrackingLive && c.DeliveryID != "" {
-			live = append(live, c)
+func firstStaleCourierID(st *store.Store) string {
+	var stale []domain.Courier
+	for _, c := range st.Couriers() {
+		if c.TrackingState == domain.TrackingStale && c.DeliveryID != "" {
+			stale = append(stale, c)
 		}
 	}
-	if len(live) == 0 {
+	if len(stale) == 0 {
 		return ""
 	}
-	sort.Slice(live, func(i, j int) bool { return live[i].ID < live[j].ID })
-	idx := (seed + tick) % len(live)
-	return live[idx].ID
+	sort.Slice(stale, func(i, j int) bool { return stale[i].ID < stale[j].ID })
+	return stale[0].ID
+}
+
+func scriptsWouldBePast(st *store.Store, sessionNonce, baseTick, seed int, live []string, opts *demo.PlanOptions) bool {
+	scripts := demo.RollSessionPlan(seed, sessionNonce, baseTick, live, opts)
+	tick := st.Tick()
+	for _, sc := range scripts {
+		if sc.Tick <= tick {
+			return true
+		}
+	}
+	return false
+}
+
+func queuedDeliveryCount(st *store.Store) int {
+	courierPrimary := map[string]string{}
+	for _, c := range st.Couriers() {
+		courierPrimary[c.ID] = c.DeliveryID
+	}
+	n := 0
+	for _, d := range st.Deliveries() {
+		if primary, ok := courierPrimary[d.CourierID]; ok && primary != d.ID {
+			n++
+		}
+	}
+	return n
 }
 
 func primaryDeliveryID(st *store.Store, courierID string) string {

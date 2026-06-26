@@ -406,8 +406,5 @@
       "customer_name": "Cliente T"
     }
   ],
-  "scripts": [
-    { "courier_id": "POA-07", "tick": 45, "action": "go_stale" },
-    { "courier_id": "POA-07", "tick": 90, "action": "reconnect" }
-  ]
+  "scripts": []
 }
