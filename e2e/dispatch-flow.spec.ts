@@ -79,24 +79,24 @@ test.describe('DispatchLab operator flow', () => {
     await expect(page.locator('.snackbar').getByText(/Agendará \d+ evento/i)).toBeVisible({
       timeout: 10_000,
     });
+    await expect(demoPanelAfterReset.locator('.demo-center__mode-banner--locked')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(demoPanelAfterReset.getByText(/Cenário ativo · Surpresa de rede/i)).toBeVisible();
+
+    await page.waitForTimeout(1300);
+
+    const doubleStaleCard = demoPanelAfterReset.getByRole('article').filter({
+      hasText: 'Dois entregadores',
+    });
+    await expect(doubleStaleCard.getByRole('button', { name: 'Executar' })).toBeDisabled();
+    await expect(exploreCard.getByRole('button', { name: 'Executar' })).toBeEnabled();
 
     await demoPanelAfterReset.getByRole('tab', { name: 'Controle' }).click();
     await expect(demoPanelAfterReset.getByRole('heading', { name: 'Simulações rápidas' })).toBeVisible();
-
-    const triggerRes = await request.post('http://localhost:8080/api/demo/trigger', {
-      data: { courier_id: 'POA-07', action: 'go_stale' },
-    });
-    if (triggerRes.ok()) {
-      await page.locator('.delivery-item').filter({ hasText: 'POA-07' }).first().click();
-      await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
-      await expect(
-        demoPanelAfterReset.getByRole('button', { name: 'Forçar sinal atrasado' }),
-      ).toBeDisabled();
-
-      const reconnectRes = await request.post('http://localhost:8080/api/demo/trigger', {
-        data: { courier_id: 'POA-07', action: 'reconnect' },
-      });
-      expect(reconnectRes.ok()).toBeTruthy();
-    }
+    await expect(
+      demoPanelAfterReset.getByRole('button', { name: 'Forçar sinal atrasado' }),
+    ).toBeDisabled();
+    await expect(demoPanelAfterReset.getByRole('button', { name: 'Reconectar' })).toBeDisabled();
   });
 });

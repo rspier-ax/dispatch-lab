@@ -11,16 +11,20 @@ import { timelineDisplay, formatTime } from '../../lib/dispatch-view.utils';
 import {
   DEMO_CONTROLS_TOOLTIP,
   DemoMapPrefs,
+  DEMO_RESET_MIN_MS,
 } from '../../lib/demo.constants';
 import { LOADING_LABELS } from '../../lib/loading-labels';
 import {
   DemoPanelTab,
   demoElapsedLabel,
+  demoScenarioLock,
+  demoScenarioModeBanner,
   demoScenarios,
   demoSessionStatusLabel,
   eventTypeBadge,
   filterDemoEvents,
   groupEventsByRecency,
+  isScenarioBlocked,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
 } from '../../lib/demo.utils';
@@ -76,6 +80,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   scenarioBlockFeedback: string | null = null;
   runningScenarioId: string | null = null;
   triggeringAction: 'go_stale' | 'reconnect' | null = null;
+  scenarioCooldownUntil = 0;
 
   private readonly provider = inject(HttpDispatchProvider);
   private readonly toast = inject(ToastService);
@@ -106,6 +111,14 @@ export class DemoCenterPanelComponent implements OnChanges {
     return demoSessionStatusLabel(this.demoInfo, this.tick);
   }
 
+  get scenarioLock() {
+    return demoScenarioLock(this.demoInfo, this.tick);
+  }
+
+  get scenarioModeBanner() {
+    return demoScenarioModeBanner(this.scenarioLock);
+  }
+
   get selectedCourier(): Courier | undefined {
     if (!this.selectedCourierId) return undefined;
     return this.couriers.find((c) => c.id === this.selectedCourierId);
@@ -115,7 +128,8 @@ export class DemoCenterPanelComponent implements OnChanges {
     return (
       this.controlsEnabled &&
       this.selectedCourier?.tracking_state === 'live' &&
-      !this.triggeringAction
+      !this.triggeringAction &&
+      !this.scenarioLock.locked
     );
   }
 
@@ -123,11 +137,15 @@ export class DemoCenterPanelComponent implements OnChanges {
     return (
       this.controlsEnabled &&
       this.selectedCourier?.tracking_state === 'stale' &&
-      !this.triggeringAction
+      !this.triggeringAction &&
+      !this.scenarioLock.locked
     );
   }
 
   get staleButtonTitle(): string {
+    if (this.scenarioLock.locked) {
+      return this.scenarioLock.reason;
+    }
     if (!this.controlsEnabled) return this.demoControlsHint;
     if (!this.selectedCourierId) return 'Selecione um entregador no mapa ou na lista.';
     if (this.selectedCourier?.tracking_state === 'stale') {
@@ -140,6 +158,9 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   get reconnectButtonTitle(): string {
+    if (this.scenarioLock.locked) {
+      return this.scenarioLock.reason;
+    }
     if (!this.controlsEnabled) return this.demoControlsHint;
     if (!this.selectedCourierId) return 'Selecione um entregador no mapa ou na lista.';
     if (this.selectedCourier?.tracking_state === 'live') {
@@ -185,8 +206,42 @@ export class DemoCenterPanelComponent implements OnChanges {
     return this.triggeringAction === action;
   }
 
+  isScenarioCooldownActive(): boolean {
+    return Date.now() < this.scenarioCooldownUntil;
+  }
+
+  isScenarioRunDisabled(scenario: DemoScenario): boolean {
+    if (this.footerBusy || this.isScenarioRunning(scenario.id)) {
+      return true;
+    }
+    if (this.isScenarioCooldownActive()) {
+      return true;
+    }
+    return isScenarioBlocked(scenario.id, this.scenarioLock);
+  }
+
+  isScenarioRunLocked(scenario: DemoScenario): boolean {
+    return isScenarioBlocked(scenario.id, this.scenarioLock);
+  }
+
+  scenarioRunTitle(scenario: DemoScenario): string {
+    if (isScenarioBlocked(scenario.id, this.scenarioLock)) {
+      return this.scenarioLock.reason;
+    }
+    if (this.isScenarioCooldownActive()) {
+      return 'Aguarde a conclusão da aplicação do cenário anterior.';
+    }
+    return '';
+  }
+
   async runScenario(scenario: DemoScenario): Promise<void> {
-    if (this.applying || this.runningScenarioId) return;
+    if (this.applying || this.runningScenarioId || this.isScenarioCooldownActive()) {
+      return;
+    }
+    if (isScenarioBlocked(scenario.id, this.scenarioLock)) {
+      this.toast.info(this.scenarioLock.reason);
+      return;
+    }
 
     if (INSTANT_SCENARIOS.has(scenario.id)) {
       await this.executeScenario(scenario.id, false);
@@ -197,7 +252,9 @@ export class DemoCenterPanelComponent implements OnChanges {
       this.applying = true;
       const preview = await firstValueFrom(this.provider.demoPreviewScenario(scenario.id));
       if (!preview.can_apply) {
-        this.scenarioBlockFeedback = preview.block_reason ?? 'Cenário indisponível.';
+        const reason = preview.block_reason ?? 'Cenário indisponível.';
+        this.scenarioBlockFeedback = reason;
+        this.toast.info(reason);
         return;
       }
       this.scenarioBlockFeedback = null;
@@ -211,7 +268,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   async onResetDemo(): Promise<void> {
-    if (!this.controlsEnabled || this.applying) return;
+    if (!this.controlsEnabled || this.applying || this.runningScenarioId) return;
 
     try {
       this.applying = true;
@@ -331,12 +388,17 @@ export class DemoCenterPanelComponent implements OnChanges {
       }
       this.scenarioBlockFeedback = null;
       this.toast.success(result.ui_hint ?? LOADING_LABELS.success.scenarioApplied, { id });
+      this.startScenarioCooldown();
       this.applyScenario.emit(result);
     } catch {
       this.toast.error(LOADING_LABELS.error.scenarioFailed, { id });
     } finally {
       this.runningScenarioId = null;
     }
+  }
+
+  private startScenarioCooldown(): void {
+    this.scenarioCooldownUntil = Date.now() + DEMO_RESET_MIN_MS;
   }
 
   private closeConfirm(): void {

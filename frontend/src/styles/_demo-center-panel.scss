@@ -433,6 +433,15 @@
   line-height: 1.35;
 }
 
+.demo-center__mode-banner--locked {
+  background: var(--stale-soft);
+  border-color: var(--stale-border);
+}
+
+.demo-center__mode-banner--locked strong {
+  color: var(--stale-dark);
+}
+
 .demo-center__feedback {
   margin: 0 0 0.625rem;
   padding: 0.5rem 0.625rem;
@@ -493,6 +502,10 @@
 .demo-center__scenario-run:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.demo-center__scenario-run--locked:disabled {
+  opacity: 0.45;
 }
 
 .demo-center__quick-grid--pair {

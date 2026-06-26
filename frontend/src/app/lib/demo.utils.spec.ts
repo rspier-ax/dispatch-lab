@@ -1,10 +1,13 @@
 import {
   demoElapsedLabel,
+  demoScenarioLock,
+  demoScenarioModeBanner,
   demoScenarios,
   demoSessionStatusLabel,
   filterDemoEvents,
   eventTypeBadge,
   groupEventsByRecency,
+  isScenarioBlocked,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
 } from './demo.utils';
@@ -88,5 +91,65 @@ describe('demo.utils', () => {
     expect(action.kind).toBe('reset');
     expect(action.severity).toBe('destructive');
     expect(action.confirm_label).toBe('Confirmar reset');
+  });
+
+  it('detects active scenario lock from demo info', () => {
+    const lock = demoScenarioLock(
+      {
+        ...FALLBACK_DEMO_INFO,
+        scenario_lock: {
+          active_id: 'network_surprise',
+          until_tick: 80,
+          remaining_events: 3,
+        },
+      },
+      10,
+    );
+    expect(lock.locked).toBe(true);
+    expect(lock.activeTitle).toBe('Surpresa de rede');
+    expect(lock.remainingEvents).toBe(3);
+  });
+
+  it('releases scenario lock when tick passes until_tick', () => {
+    const lock = demoScenarioLock(
+      {
+        ...FALLBACK_DEMO_INFO,
+        scenario_lock: {
+          active_id: 'network_surprise',
+          until_tick: 80,
+          remaining_events: 0,
+        },
+      },
+      80,
+    );
+    expect(lock.locked).toBe(false);
+  });
+
+  it('blocks only scripted scenarios while lock is active', () => {
+    const lock = demoScenarioLock(
+      {
+        ...FALLBACK_DEMO_INFO,
+        scenario_lock: {
+          active_id: 'network_surprise',
+          until_tick: 80,
+          remaining_events: 2,
+        },
+      },
+      10,
+    );
+    expect(isScenarioBlocked('double_stale', lock)).toBe(true);
+    expect(isScenarioBlocked('explore_routes', lock)).toBe(false);
+  });
+
+  it('builds locked mode banner copy', () => {
+    const banner = demoScenarioModeBanner({
+      locked: true,
+      reason: '',
+      remainingEvents: 2,
+      activeTitle: 'Surpresa de rede',
+      activeId: 'network_surprise',
+    });
+    expect(banner.heading).toContain('Surpresa de rede');
+    expect(banner.detail).toContain('2 evento(s) restante(s)');
   });
 });

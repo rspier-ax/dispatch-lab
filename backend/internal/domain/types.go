@@ -204,11 +204,18 @@ type ScenarioApplyResult struct {
 }
 
 type DemoInfo struct {
-	Tick             int            `json:"tick"`
-	IntervalMS       int            `json:"interval_ms"`
-	Scripts          []ScriptAction `json:"scripts"`
-	Scenarios        []DemoScenario `json:"scenarios"`
-	ControlsEnabled  bool           `json:"controls_enabled"`
-	ScenarioSeed     int            `json:"scenario_seed"`
-	SessionNonce     int            `json:"session_nonce,omitempty"`
+	Tick             int               `json:"tick"`
+	IntervalMS       int               `json:"interval_ms"`
+	Scripts          []ScriptAction    `json:"scripts"`
+	Scenarios        []DemoScenario    `json:"scenarios"`
+	ControlsEnabled  bool              `json:"controls_enabled"`
+	ScenarioSeed     int               `json:"scenario_seed"`
+	SessionNonce     int               `json:"session_nonce,omitempty"`
+	ScenarioLock     *ScenarioLockInfo `json:"scenario_lock,omitempty"`
+}
+
+type ScenarioLockInfo struct {
+	ActiveID        string `json:"active_id"`
+	UntilTick       int    `json:"until_tick"`
+	RemainingEvents int    `json:"remaining_events"`
 }
