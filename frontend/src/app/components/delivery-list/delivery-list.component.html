@@ -62,7 +62,7 @@
               <span class="delivery-item__meta">
                 <span class="delivery-item__dot" [class]="'delivery-item__dot--' + row.trackingState" aria-hidden="true"></span>
                 <span>{{ row.delivery.courier_id }} · {{ row.delivery.courier_name }}</span>
-                <span>{{ phaseLabel(row.delivery.status) }} · {{ formatEtaLabel(row.delivery.eta_seconds) }}</span>
+                <span>{{ deliveryMetaLabel(row.delivery, isQueued(row.delivery, couriers)) }}</span>
               </span>
             </span>
           </button>

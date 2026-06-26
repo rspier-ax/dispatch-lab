@@ -3,8 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Courier, Delivery, TrackingState } from '../../services/dispatch/types';
 import {
   courierMatchesFilter,
-  deliveryPhaseLabel,
-  formatEtaLabel,
+  deliveryMetaLabel,
   isQueuedDelivery,
   matchesDeliverySearch,
   trackingStateLabel,
@@ -59,7 +58,6 @@ export class DeliveryListComponent {
   }
 
   trackingLabel = trackingStateLabel;
-  phaseLabel = deliveryPhaseLabel;
-  formatEtaLabel = formatEtaLabel;
+  deliveryMetaLabel = deliveryMetaLabel;
   isQueued = isQueuedDelivery;
 }
