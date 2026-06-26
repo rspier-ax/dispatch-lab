@@ -1,0 +1,104 @@
+.dispatch-boot {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  align-content: start;
+  gap: 1rem;
+  height: 100dvh;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, var(--surface-subtle) 0%, var(--app-bg) 40%);
+}
+
+.dispatch-boot__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.dispatch-boot__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dispatch-boot__region {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.dispatch-boot__message {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dispatch-boot__progress {
+  height: 4px;
+  max-width: 240px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.dispatch-boot__progress-bar {
+  width: 40%;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  animation: boot-progress 1.2s ease-in-out infinite;
+}
+
+.dispatch-boot__skeleton {
+  display: grid;
+  grid-template-columns: minmax(280px, 350px) minmax(0, 1fr) minmax(300px, 360px);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  margin-top: 0.5rem;
+  opacity: 0.55;
+}
+
+.dispatch-boot__skeleton-col {
+  min-height: 0;
+  background: linear-gradient(
+    90deg,
+    var(--surface-subtle) 25%,
+    var(--surface-hover) 50%,
+    var(--surface-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border: 1px solid var(--border);
+}
+
+.dispatch-boot__skeleton-col--map {
+  border-left: none;
+  border-right: none;
+}
+
+@keyframes boot-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dispatch-boot__skeleton {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(260px, 320px);
+  }
+}

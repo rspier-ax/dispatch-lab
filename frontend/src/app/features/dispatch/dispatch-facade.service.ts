@@ -8,7 +8,9 @@ import {
   MapBounds,
   ScenarioSnapshot,
 } from '../../services/dispatch/types';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout, filter, take, catchError, of } from 'rxjs';
+
+const SSE_CONNECT_TIMEOUT_MS = 8000;
 
 @Injectable({ providedIn: 'root' })
 export class DispatchFacadeService {
@@ -38,6 +40,14 @@ export class DispatchFacadeService {
       const snap = await firstValueFrom(this.provider.getScenario());
       this.snapshot.set(snap);
       this.stream.connect(snap.couriers, snap.deliveries);
+      await firstValueFrom(
+        this.stream.connection$.pipe(
+          filter((state) => state === 'connected'),
+          take(1),
+          timeout(SSE_CONNECT_TIMEOUT_MS),
+          catchError(() => of(null)),
+        ),
+      );
     } catch {
       this.error.set('Não foi possível carregar o cenário POA Centro.');
     } finally {
