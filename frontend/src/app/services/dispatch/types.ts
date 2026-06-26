@@ -124,6 +124,25 @@ export interface DemoScenario {
   delivery_id?: string;
 }
 
+export interface ScenarioPreview {
+  can_apply: boolean;
+  block_reason?: string;
+  requires_reset: boolean;
+  summary_lines: string[];
+  focused_courier_id?: string;
+  delivery_id?: string;
+  fit_map?: boolean;
+  scripts?: ScriptAction[];
+}
+
+export interface ScenarioApplyResult {
+  focused_courier_id?: string;
+  delivery_id?: string;
+  reset_performed: boolean;
+  fit_map: boolean;
+  scripts?: ScriptAction[];
+}
+
 export interface DemoInfo {
   tick: number;
   interval_ms: number;

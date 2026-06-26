@@ -9,8 +9,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "Starting DispatchLab backend on :8080..."
-(cd "$ROOT/backend" && go run ./cmd/server) &
+echo "Starting DispatchLab backend on :8080 (DEMO_CONTROLS=true)..."
+(cd "$ROOT/backend" && DEMO_CONTROLS=true go run ./cmd/server) &
 BACKEND_PID=$!
 
 echo "Starting DispatchLab frontend on :4200..."

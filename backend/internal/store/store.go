@@ -347,6 +347,12 @@ func (s *Store) UpcomingScripts(fromTick int) []domain.ScriptAction {
 	return out
 }
 
+func (s *Store) SetScripts(scripts []domain.ScriptAction) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.scenario.Scripts = scripts
+}
+
 func (s *Store) HasMilestone(courierID, eventType string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -11,7 +11,7 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import * as L from 'leaflet';
-import { Courier, DeliveryEventPayload, DemoInfo, DemoScenario, Landmark, MapBounds, TrackingState } from '../../services/dispatch/types';
+import { Courier, DeliveryEventPayload, DemoInfo, Landmark, MapBounds, ScenarioApplyResult, TrackingState } from '../../services/dispatch/types';
 import {
   courierMatchesFilter,
   formatBbox,
@@ -61,7 +61,7 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Output() toggleDemoCenter = new EventEmitter<void>();
   @Output() demoClosed = new EventEmitter<void>();
   @Output() demoFocusCourier = new EventEmitter<string>();
-  @Output() demoApplyScenario = new EventEmitter<DemoScenario>();
+  @Output() demoApplyScenario = new EventEmitter<ScenarioApplyResult>();
   @Output() demoMapPrefsChange = new EventEmitter<DemoMapPrefs>();
   @Output() demoRefreshed = new EventEmitter<void>();
 

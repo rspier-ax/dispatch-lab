@@ -14,6 +14,10 @@ export interface CourierMetrics {
 
 export type TrackingFilter = 'all' | TrackingState;
 
+export type DeliveryPhaseFilter = 'all' | 'queued' | 'picking_up' | 'in_transit';
+
+export type DeliverySort = 'eta' | 'restaurant' | 'id';
+
 export interface TimelineDisplay {
   title: string;
   description: string;
@@ -303,6 +307,49 @@ export function matchesDeliverySearch(
 export function courierMatchesFilter(state: TrackingState, filter: TrackingFilter): boolean {
   if (filter === 'all') return true;
   return state === filter;
+}
+
+export function deliveryPhase(
+  delivery: { status: string },
+  queued: boolean,
+): DeliveryPhaseFilter | 'delivered' {
+  if (queued) return 'queued';
+  if (delivery.status === 'picking_up') return 'picking_up';
+  if (delivery.status === 'in_transit') return 'in_transit';
+  return 'delivered';
+}
+
+export function matchesPhaseFilter(
+  phase: DeliveryPhaseFilter,
+  delivery: { id: string; courier_id: string; status: string },
+  couriers: Courier[],
+  queued: boolean,
+): boolean {
+  if (phase === 'all') return true;
+  return deliveryPhase(delivery, queued) === phase;
+}
+
+export function compareDeliveriesForSort(
+  a: { id: string; restaurant: string; eta_seconds: number; status: string },
+  b: { id: string; restaurant: string; eta_seconds: number; status: string },
+  sort: DeliverySort,
+  aQueued: boolean,
+  bQueued: boolean,
+): number {
+  if (sort === 'restaurant') {
+    return a.restaurant.localeCompare(b.restaurant, 'pt-BR');
+  }
+  if (sort === 'id') {
+    return a.id.localeCompare(b.id);
+  }
+  // ETA ascending; queued deliveries last
+  if (aQueued !== bQueued) return aQueued ? 1 : -1;
+  if (a.status === 'delivered' && b.status !== 'delivered') return 1;
+  if (b.status === 'delivered' && a.status !== 'delivered') return -1;
+  const etaA = a.eta_seconds > 0 ? a.eta_seconds : Number.MAX_SAFE_INTEGER;
+  const etaB = b.eta_seconds > 0 ? b.eta_seconds : Number.MAX_SAFE_INTEGER;
+  if (etaA !== etaB) return etaA - etaB;
+  return a.id.localeCompare(b.id);
 }
 
 export function markerClass(

@@ -40,19 +40,44 @@
         [(ngModel)]="searchQuery"
         autocomplete="off"
       />
-      @if (listTab === 'active') {
-        <label class="sr-only" for="delivery-filter">Filtrar por estado</label>
-        <select
-          id="delivery-filter"
-          class="list-panel__filter"
-          [ngModel]="filter"
-          (ngModelChange)="onFilterChange($event)"
-        >
-          @for (opt of filterOptions; track opt.value) {
+
+      <div class="list-panel__filters">
+        @if (listTab === 'active') {
+          <label class="sr-only" for="delivery-filter">Filtrar por tracking</label>
+          <select
+            id="delivery-filter"
+            class="list-panel__filter"
+            [ngModel]="filter"
+            (ngModelChange)="onFilterChange($event)"
+          >
+            @for (opt of filterOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+
+          <label class="sr-only" for="delivery-phase-filter">Filtrar por fase</label>
+          <select id="delivery-phase-filter" class="list-panel__filter" [(ngModel)]="phaseFilter">
+            @for (opt of phaseOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        }
+
+        <label class="sr-only" for="delivery-courier-filter">Filtrar por entregador</label>
+        <select id="delivery-courier-filter" class="list-panel__filter" [(ngModel)]="courierFilter">
+          <option value="">Todos</option>
+          @for (c of couriers; track c.id) {
+            <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
+          }
+        </select>
+
+        <label class="sr-only" for="delivery-sort">Ordenar</label>
+        <select id="delivery-sort" class="list-panel__filter" [(ngModel)]="sortBy">
+          @for (opt of sortOptionsForTab; track opt.value) {
             <option [value]="opt.value">{{ opt.label }}</option>
           }
         </select>
-      }
+      </div>
     </div>
   </header>
 
@@ -85,7 +110,7 @@
               <span class="delivery-item__top">
                 <span class="delivery-item__id">{{ row.delivery.id }}</span>
                 <span class="delivery-item__badges">
-                  @if (listTab === 'active' && isQueued(row.delivery, couriers)) {
+                  @if (listTab === 'active' && row.queued) {
                     <span class="delivery-item__badge delivery-item__badge--queued">Na fila</span>
                   }
                   @if (listTab === 'active') {
@@ -93,6 +118,12 @@
                       {{ trackingLabel(row.trackingState) }}
                     </span>
                   }
+                  @let metaBadge = deliveryMetaBadge(row.delivery, row.queued);
+                  <span
+                    [class]="'delivery-item__badge delivery-item__badge--meta delivery-item__badge--meta-' + metaBadge.tone"
+                  >
+                    {{ metaBadge.label }}
+                  </span>
                 </span>
               </span>
               <span class="delivery-item__name">{{ row.delivery.restaurant }}</span>
@@ -101,12 +132,6 @@
                   <span class="delivery-item__dot" [class]="'delivery-item__dot--' + row.trackingState" aria-hidden="true"></span>
                 }
                 <span class="delivery-item__courier">{{ row.delivery.courier_id }} · {{ row.delivery.courier_name }}</span>
-                @let metaBadge = deliveryMetaBadge(row.delivery, isQueued(row.delivery, couriers));
-                <span
-                  [class]="'delivery-item__badge delivery-item__badge--meta delivery-item__badge--meta-' + metaBadge.tone"
-                >
-                  {{ metaBadge.label }}
-                </span>
               </span>
             </span>
           </button>

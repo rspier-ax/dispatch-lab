@@ -13,6 +13,17 @@
       <button type="button" class="demo-center__close" aria-label="Fechar" (click)="onClose()">×</button>
     </header>
 
+    <div class="demo-center__status" aria-live="polite">
+      <div class="demo-center__status-row">
+        <span class="mono demo-center__status-time">{{ simulationTimeLabel }}</span>
+        <span class="mono demo-center__tick">Tick {{ tick }}</span>
+      </div>
+      <p class="demo-center__next">{{ nextScriptLabel }}</p>
+      <div class="demo-center__progress" role="progressbar" [attr.aria-valuenow]="progressPercent">
+        <div class="demo-center__progress-bar" [style.width.%]="progressPercent"></div>
+      </div>
+    </div>
+
     <div class="demo-center__tabs" role="tablist" aria-label="Seções da Central da Demo">
       @for (tab of tabs; track tab.id) {
         <button
@@ -106,34 +117,20 @@
                 />
                 <span><strong>Mostrar polyline</strong><small>Rota do selecionado</small></span>
               </label>
-              <label class="demo-center__toggle">
-                <input
-                  type="checkbox"
-                  [checked]="highlightEnabled"
-                  (change)="onHighlightToggle($any($event.target).checked)"
-                />
-                <span><strong>{{ highlightLabel }}</strong><small>Destaque no mapa</small></span>
-              </label>
             </div>
           </section>
 
           <section class="demo-center__section demo-center__playback">
             <div class="demo-center__playback-head">
               <span>Tempo da simulação</span>
-              <span class="mono demo-center__tick">Tick {{ tick }}</span>
             </div>
             <input type="range" class="demo-center__slider" min="0" max="90" [value]="tick" disabled [title]="seekHint" />
             <div class="demo-center__playback-meta">
-              <span class="mono">{{ simulationTimeLabel }}</span>
               <div class="demo-center__speed">
                 <button type="button" class="demo-center__speed-btn demo-center__speed-btn--active">x1</button>
                 <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x2</button>
                 <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x5</button>
               </div>
-            </div>
-            <p class="demo-center__next">{{ nextScriptLabel }}</p>
-            <div class="demo-center__progress" role="progressbar" [attr.aria-valuenow]="progressPercent">
-              <div class="demo-center__progress-bar" [style.width.%]="progressPercent"></div>
             </div>
           </section>
         }
@@ -217,7 +214,23 @@
       >
         Resetar demo
       </button>
-      <button type="button" class="demo-center__apply" (click)="onApplyScenario()">Aplicar cenário</button>
+      <button
+        type="button"
+        class="demo-center__apply"
+        [disabled]="!hasPendingScenarioChange || applying"
+        (click)="onApplyScenario()"
+      >
+        Aplicar cenário
+      </button>
     </footer>
+
+    @if (confirmOpen && confirmPreview) {
+      <app-demo-scenario-confirm
+        [preview]="confirmPreview"
+        [scenarioTitle]="confirmScenarioTitle"
+        (cancelled)="onConfirmCancelled()"
+        (confirmed)="onConfirmAccepted()"
+      />
+    }
   </aside>
 }

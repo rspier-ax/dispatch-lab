@@ -10,6 +10,7 @@ primary_region = 'gru'
 
 [env]
   CORS_ORIGIN = 'https://dispatch-lab.pages.dev'
+  DEMO_CONTROLS = 'false'
 
 [http_service]
   internal_port = 8080

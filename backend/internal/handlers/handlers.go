@@ -34,11 +34,21 @@ func (a *API) Register(mux *http.ServeMux) {
 		mux.HandleFunc("POST /api/demo/reset", a.handleDemoReset)
 		mux.HandleFunc("POST /api/demo/advance", a.handleDemoAdvance)
 		mux.HandleFunc("POST /api/demo/trigger", a.handleDemoTrigger)
+		mux.HandleFunc("POST /api/demo/preview-scenario", a.handleDemoPreviewScenario)
+		mux.HandleFunc("POST /api/demo/apply-scenario", a.handleDemoApplyScenario)
 	}
 }
 
 func DemoControlsEnabled() bool {
-	return os.Getenv("DEMO_CONTROLS") == "true"
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("DEMO_CONTROLS"))) {
+	case "false", "0", "no":
+		return false
+	case "true", "1", "yes":
+		return true
+	default:
+		// Demo app: enabled by default for local use. Set DEMO_CONTROLS=false in production.
+		return true
+	}
 }
 
 func (a *API) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -86,28 +96,6 @@ func (a *API) handleDemoInfo(w http.ResponseWriter, _ *http.Request) {
 		ScenarioSeed:    sc.Seed,
 		Scenarios:       demoScenarios(),
 	})
-}
-
-func demoScenarios() []domain.DemoScenario {
-	return []domain.DemoScenario{
-		{
-			ID:          "poa07_stale",
-			Title:       "POA-07 — sinal atrasado",
-			Description: "Selecione DEL-007 e aguarde o tick 45 (~45s) para ver o entregador ficar com sinal atrasado na Rua dos Andradas.",
-			CourierID:   "POA-07",
-			DeliveryID:  "DEL-007",
-		},
-		{
-			ID:          "explore_routes",
-			Title:       "Explorar rotas nas ruas",
-			Description: "Selecione qualquer entregador ao vivo e observe a rota restante seguindo o grid viário do Centro Histórico.",
-		},
-		{
-			ID:          "tracking_states",
-			Title:       "Estados de tracking",
-			Description: "Compare badges Ao vivo, Sinal atrasado e Sem sinal na lista e no mapa.",
-		},
-	}
 }
 
 func (a *API) handleDemoReset(w http.ResponseWriter, r *http.Request) {
