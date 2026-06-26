@@ -29,7 +29,9 @@ test.describe('DispatchLab operator flow', () => {
     await expect(page.getByRole('dialog', { name: /Resetar demo/i })).toBeVisible();
     await expect(page.getByText(/Novo plano de eventos será sorteado/i)).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar reset' }).click();
-    await expect(page.getByText('Reiniciando demo…')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('.dispatch-boot__message')).toHaveText('Reiniciando demo…', {
+      timeout: 5_000,
+    });
     await expect(page.getByLabel('Carregando operação POA Centro')).toBeHidden({ timeout: 30_000 });
     await expect(demoPanel.getByText('tick 0')).toBeVisible({ timeout: 15_000 });
 
