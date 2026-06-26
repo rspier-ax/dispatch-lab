@@ -61,6 +61,7 @@ func (s *Store) initFromScenario() {
 				Timestamp: s.startedAt,
 			},
 		}
+		s.milestones[def.ID] = make(map[string]bool)
 	}
 	for _, d := range s.scenario.Deliveries {
 		name := courierNames[d.CourierID]
@@ -79,6 +80,21 @@ func (s *Store) initFromScenario() {
 			del.ETASeconds = c.ETASeconds
 		}
 		s.deliveries[d.ID] = del
+	}
+	for _, def := range s.scenario.Couriers {
+		del, ok := s.deliveries[def.DeliveryID]
+		if !ok || del.Status != domain.StatusInTransit {
+			continue
+		}
+		msg := "Pedido já coletado em " + del.Restaurant + " — em rota para " + del.Street
+		s.timelines[def.ID] = append(s.timelines[def.ID], domain.TimelineEvent{
+			ID:        s.nextEventID(),
+			CourierID: def.ID,
+			Type:      "picked_up",
+			Message:   msg,
+			Timestamp: s.startedAt,
+		})
+		s.milestones[def.ID]["picked_up"] = true
 	}
 }
 

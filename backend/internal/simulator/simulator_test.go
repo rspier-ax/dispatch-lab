@@ -99,3 +99,57 @@ func TestPickingUpCourierGetsMilestones(t *testing.T) {
 	}
 	t.Fatal("expected POA-03 arrived_pickup milestone within 120 ticks")
 }
+
+func TestDeliveryCompletesAtRouteEnd(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	sim := New(st, nil)
+	for i := 0; i < 800; i++ {
+		sim.TickOnce()
+	}
+	courier, ok := st.GetCourier("POA-06")
+	if !ok {
+		t.Fatal("missing POA-06")
+	}
+	delivery, ok := st.GetDelivery("DEL-006")
+	if !ok {
+		t.Fatal("missing DEL-006")
+	}
+	if delivery.Status != domain.StatusDelivered {
+		t.Fatalf("expected DEL-006 delivered, got %s after 800 ticks", delivery.Status)
+	}
+	if !st.HasMilestone("POA-06", "delivered") {
+		t.Fatal("expected delivered milestone on POA-06")
+	}
+	if courier.ETASeconds != 0 {
+		t.Fatalf("expected ETA 0 after delivery, got %d", courier.ETASeconds)
+	}
+}
+
+func TestInTransitStarterHasPickupTimeline(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	detail, ok := st.CourierDetail("POA-06")
+	if !ok {
+		t.Fatal("missing POA-06 detail")
+	}
+	found := false
+	for _, ev := range detail.Timeline {
+		if ev.Type == "picked_up" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("expected picked_up timeline seed for in_transit starter POA-06")
+	}
+	if !st.HasMilestone("POA-06", "picked_up") {
+		t.Fatal("expected picked_up milestone for POA-06")
+	}
+}
