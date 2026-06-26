@@ -173,6 +173,25 @@ type DemoScenario struct {
 	DeliveryID  string `json:"delivery_id,omitempty"`
 }
 
+type ScenarioPreview struct {
+	CanApply         bool           `json:"can_apply"`
+	BlockReason      string         `json:"block_reason,omitempty"`
+	RequiresReset    bool           `json:"requires_reset"`
+	SummaryLines     []string       `json:"summary_lines"`
+	FocusedCourierID string         `json:"focused_courier_id,omitempty"`
+	DeliveryID       string         `json:"delivery_id,omitempty"`
+	FitMap           bool           `json:"fit_map,omitempty"`
+	Scripts          []ScriptAction `json:"scripts,omitempty"`
+}
+
+type ScenarioApplyResult struct {
+	FocusedCourierID string         `json:"focused_courier_id,omitempty"`
+	DeliveryID       string         `json:"delivery_id,omitempty"`
+	ResetPerformed   bool           `json:"reset_performed"`
+	FitMap           bool           `json:"fit_map"`
+	Scripts          []ScriptAction `json:"scripts,omitempty"`
+}
+
 type DemoInfo struct {
 	Tick             int            `json:"tick"`
 	IntervalMS       int            `json:"interval_ms"`

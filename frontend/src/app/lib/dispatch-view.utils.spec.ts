@@ -1,10 +1,13 @@
 import {
+  compareDeliveriesForSort,
   courierMetrics,
   deliveryMetaBadge,
+  deliveryPhase,
   formatEta,
   formatEtaLabel,
   formatSignalAge,
   journeySteps,
+  matchesPhaseFilter,
   remainingDistanceM,
   staleAgeSeconds,
   trackingStateLabel,
@@ -101,6 +104,21 @@ describe('dispatch-view.utils', () => {
 
   it('computes remaining distance', () => {
     expect(remainingDistanceM(courier)).toBeGreaterThan(0);
+  });
+
+  it('filters and sorts deliveries', () => {
+    const couriers: Courier[] = [
+      { ...courier, id: 'POA-02', delivery_id: 'DEL-002' },
+    ];
+    const queued = { id: 'DEL-020', courier_id: 'POA-01', status: 'in_transit' as const };
+    expect(deliveryPhase(queued, true)).toBe('queued');
+    expect(matchesPhaseFilter('queued', queued, couriers, true)).toBe(true);
+    expect(matchesPhaseFilter('in_transit', queued, couriers, true)).toBe(false);
+
+    const a = { id: 'DEL-002', restaurant: 'B', eta_seconds: 200, status: 'in_transit' };
+    const b = { id: 'DEL-001', restaurant: 'A', eta_seconds: 100, status: 'in_transit' };
+    expect(compareDeliveriesForSort(a, b, 'eta', false, false)).toBeGreaterThan(0);
+    expect(compareDeliveriesForSort(a, b, 'restaurant', false, false)).toBeGreaterThan(0);
   });
 
   it('maps timeline display for stale', () => {

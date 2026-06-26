@@ -4,7 +4,7 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 
 ## Prerequisites
 
-- Backend and frontend running (two terminals — see [Run locally](../../README.md#run-locally)).
+- Backend and frontend running — `./scripts/dev.sh` enables demo controls automatically.
 - Viewport width ≥ 768px (desktop/tablet layout).
 
 ## Demo center panel
@@ -12,18 +12,33 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 1. Open http://localhost:4200.
 2. On the map, click **Central da demo** to open the docked panel on the left.
 
+### Status strip (above tabs)
+
+- Simulated clock with **· Ao vivo**, current **Tick**, next scheduled script (or **Todos os scripts executados**), and a compact progress bar.
+
 ### Controle (Control)
 
-- Simulation controls, map display options, playback, and progress toward the POA-07 stale/reconnect script.
-- Optional dev controls when `DEMO_CONTROLS=true` is set on the backend (see below).
+- **Entregador em foco** selects and highlights the courier on the map (no separate highlight toggle).
+- Quick actions: force stale / reconnect when demo controls are enabled.
+- Map display toggles (bbox, polyline).
 
 ### Cenários (Scenarios)
 
-- Pick a scenario card and click **Aplicar cenário** (e.g. POA-07 selects delivery DEL-007).
+- Pick a scenario card; **Aplicar cenário** stays disabled until you change the selection.
+- Click **Aplicar cenário** to open a confirmation dialog with a summary of effects (focus courier, scheduled scripts, reset warning, or block reason).
+- Scenarios:
+  - **POA-07 — sinal atrasado** — fixed scripts at ticks 45 and 90; focuses POA-07.
+  - **Sinal atrasado — entregador aleatório** — picks a live courier and schedules stale/reconnect at tick+20 and tick+50.
+  - **Explorar rotas** — fits the map to the operation area (visual only).
+  - **Estados de tracking** — guidance for comparing tracking badges.
 
 ### Eventos (Events)
 
 - Structured SSE event feed with a per-courier filter.
+
+### Reset
+
+- **Resetar demo** restarts the simulation at tick 0 without restarting the server (requires demo controls).
 
 ### Map overlay
 
@@ -34,24 +49,35 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 1. **Refresh (F5):** a full-screen boot loader avoids a flash of zero metrics or a disconnected SSE state before the stream is ready.
 2. **Select a courier** on the map: the blue route polyline shows the **remaining** segment; the gray dashed segment is already traveled.
 3. **Queued deliveries:** items with the **Na fila** badge share a courier in the scenario (20 deliveries / 15 couriers). The simulator animates only the primary active delivery per courier.
+4. **Delivery list filters:** phase (Na fila / Coletando / Em rota), courier, tracking state, sort by ETA or restaurant.
 
 ## Recommended script: `#POA-07`
 
 Courier `#POA-07` follows Rua dos Andradas. At simulation tick 45 tracking becomes `stale` (GPS/connectivity loss). At tick 90 it reconnects to `live`. This path is deterministic (seed 42) and covered by E2E.
 
-## Dev controls (optional)
+## Dev controls
 
-Set `DEMO_CONTROLS=true` on the backend to enable reset, quick stale/reconnect simulations, and **Resetar demo** in the panel.
+Demo controls (**Resetar demo**, simulações rápidas, aplicar cenários) are **enabled by default** when running the backend locally. `./scripts/dev.sh` still sets `DEMO_CONTROLS=true` explicitly.
+
+To disable (e.g. production-like run):
 
 ```bash
-# Windows (PowerShell)
-$env:DEMO_CONTROLS="true"; go run ./cmd/server
-
-# bash
-DEMO_CONTROLS=true go run ./cmd/server
+DEMO_CONTROLS=false go run ./cmd/server
 ```
 
-**Do not** enable `DEMO_CONTROLS` in CI.
+Production deploy (`fly.toml`) sets `DEMO_CONTROLS=false`.
+
+## API (demo controls enabled)
+
+```bash
+curl -X POST http://localhost:8080/api/demo/preview-scenario \
+  -H 'Content-Type: application/json' \
+  -d '{"scenario_id":"random_stale"}'
+
+curl -X POST http://localhost:8080/api/demo/apply-scenario \
+  -H 'Content-Type: application/json' \
+  -d '{"scenario_id":"random_stale"}'
+```
 
 ## Disabled controls (roadmap)
 
@@ -65,7 +91,7 @@ These UI controls exist but remain disabled until backend support lands:
 
 ## E2E and tick speed
 
-Playwright E2E uses `SIM_TICK_MS=200` to accelerate simulation ticks. Do not combine accelerated ticks with `DEMO_CONTROLS` in CI.
+Playwright E2E uses `SIM_TICK_MS=200` and `DEMO_CONTROLS=true` via CI config.
 
 From the repo root:
 

@@ -6,7 +6,14 @@ import {
   Output,
   SimpleChanges,
 } from '@angular/core';
-import { Courier, DeliveryEventPayload, DemoInfo, DemoScenario } from '../../services/dispatch/types';
+import {
+  Courier,
+  DeliveryEventPayload,
+  DemoInfo,
+  DemoScenario,
+  ScenarioApplyResult,
+  ScenarioPreview,
+} from '../../services/dispatch/types';
 import { timelineDisplay, formatTime } from '../../lib/dispatch-view.utils';
 import {
   COMING_SOON_TOOLTIP,
@@ -25,11 +32,13 @@ import {
   groupEventsByRecency,
 } from '../../lib/demo.utils';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
+import { DemoScenarioConfirmComponent } from './demo-scenario-confirm.component';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
+  imports: [DemoScenarioConfirmComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
@@ -48,7 +57,7 @@ export class DemoCenterPanelComponent implements OnChanges {
 
   @Output() closed = new EventEmitter<void>();
   @Output() focusCourier = new EventEmitter<string>();
-  @Output() applyScenario = new EventEmitter<DemoScenario>();
+  @Output() applyScenario = new EventEmitter<ScenarioApplyResult>();
   @Output() mapPrefsChange = new EventEmitter<DemoMapPrefs>();
   @Output() refreshed = new EventEmitter<void>();
 
@@ -64,17 +73,23 @@ export class DemoCenterPanelComponent implements OnChanges {
   activeTab: DemoPanelTab = 'control';
   focusCourierId = '';
   selectedScenarioId: string | null = null;
-  highlightEnabled = true;
+  appliedScenarioId: string | null = null;
   eventCourierFilter: string | null = null;
+  confirmOpen = false;
+  confirmPreview: ScenarioPreview | null = null;
+  confirmScenarioTitle = '';
+  applying = false;
 
   constructor(private readonly provider: HttpDispatchProvider) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['open']?.currentValue && !this.selectedScenarioId && this.scenarios.length) {
-      this.selectedScenarioId = this.scenarios[0].id;
-    }
-    if (changes['mapPrefs']) {
-      this.highlightEnabled = !!this.mapPrefs.highlightCourierId;
+    if (changes['open']?.currentValue && this.scenarios.length) {
+      if (!this.selectedScenarioId) {
+        this.selectedScenarioId = this.scenarios[0].id;
+      }
+      if (!this.appliedScenarioId) {
+        this.appliedScenarioId = this.scenarios[0].id;
+      }
     }
     if (changes['selectedCourierId'] && this.selectedCourierId) {
       this.focusCourierId = this.selectedCourierId;
@@ -94,6 +109,14 @@ export class DemoCenterPanelComponent implements OnChanges {
     return this.demoInfo?.controls_enabled ?? false;
   }
 
+  get hasPendingScenarioChange(): boolean {
+    return (
+      !!this.selectedScenarioId &&
+      !!this.appliedScenarioId &&
+      this.selectedScenarioId !== this.appliedScenarioId
+    );
+  }
+
   get nextScriptLabel(): string {
     return demoNextScriptLabel(this.demoInfo, this.tick);
   }
@@ -104,10 +127,6 @@ export class DemoCenterPanelComponent implements OnChanges {
 
   get simulationTimeLabel(): string {
     return demoSimulationTimeLabel(this.tick, this.demoInfo?.interval_ms);
-  }
-
-  get highlightLabel(): string {
-    return this.focusCourierId ? `Destacar ${this.focusCourierId}` : 'Destacar entregador';
   }
 
   filteredEvents(): DeliveryEventPayload[] {
@@ -149,20 +168,59 @@ export class DemoCenterPanelComponent implements OnChanges {
     this.selectedScenarioId = scenario.id;
   }
 
-  onApplyScenario(): void {
-    const scenario =
-      this.scenarios.find((s) => s.id === this.selectedScenarioId) ?? this.scenarios[0];
+  async onApplyScenario(): Promise<void> {
+    if (!this.hasPendingScenarioChange || !this.selectedScenarioId || this.applying) return;
+    const scenario = this.scenarios.find((s) => s.id === this.selectedScenarioId);
     if (!scenario) return;
-    this.applyScenario.emit(scenario);
+
+    try {
+      this.applying = true;
+      const preview = await firstValueFrom(
+        this.provider.demoPreviewScenario(
+          scenario.id,
+          scenario.id === 'random_stale' ? undefined : this.focusCourierId || undefined,
+        ),
+      );
+      this.confirmPreview = preview;
+      this.confirmScenarioTitle = scenario.title;
+      this.confirmOpen = true;
+    } finally {
+      this.applying = false;
+    }
+  }
+
+  onConfirmCancelled(): void {
+    this.confirmOpen = false;
+    this.confirmPreview = null;
+  }
+
+  async onConfirmAccepted(): Promise<void> {
+    if (!this.confirmPreview?.can_apply || !this.selectedScenarioId || this.applying) return;
+    try {
+      this.applying = true;
+      const result = await firstValueFrom(
+        this.provider.demoApplyScenario(this.selectedScenarioId, {
+          courierId:
+            this.selectedScenarioId === 'random_stale'
+              ? undefined
+              : this.focusCourierId || undefined,
+          confirmReset: this.confirmPreview.requires_reset,
+        }),
+      );
+      this.appliedScenarioId = this.selectedScenarioId;
+      this.confirmOpen = false;
+      this.confirmPreview = null;
+      if (result.reset_performed) {
+        this.refreshed.emit();
+      }
+      this.applyScenario.emit(result);
+    } finally {
+      this.applying = false;
+    }
   }
 
   toggleMapPref(key: 'showBoundsOverlay' | 'showRoutePolyline', value: boolean): void {
     this.mapPrefsChange.emit({ ...this.mapPrefs, [key]: value });
-  }
-
-  onHighlightToggle(enabled: boolean): void {
-    this.highlightEnabled = enabled;
-    this.syncHighlightCourier();
   }
 
   async onResetDemo(): Promise<void> {
@@ -182,7 +240,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   private syncHighlightCourier(): void {
-    const id = this.highlightEnabled && this.focusCourierId ? this.focusCourierId : null;
+    const id = this.focusCourierId || null;
     if (this.mapPrefs.highlightCourierId === id) return;
     this.mapPrefsChange.emit({ ...this.mapPrefs, highlightCourierId: id });
   }

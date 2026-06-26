@@ -9,7 +9,7 @@ import { DispatchHeaderComponent } from '../../components/header/dispatch-header
 import { DispatchBootComponent } from '../../components/boot/dispatch-boot.component';
 import { DispatchStreamService } from '../../services/dispatch/dispatch-stream.service';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
-import { Courier, CourierDetail, Delivery, DeliveryEventPayload, DemoInfo, DemoScenario, Landmark } from '../../services/dispatch/types';
+import { Courier, CourierDetail, Delivery, DeliveryEventPayload, DemoInfo, Landmark, ScenarioApplyResult } from '../../services/dispatch/types';
 import { firstValueFrom } from 'rxjs';
 import { courierMetrics, CourierMetrics, TrackingFilter } from '../../lib/dispatch-view.utils';
 import { DEFAULT_DEMO_MAP_PREFS, DemoMapPrefs, FALLBACK_DEMO_INFO } from '../../lib/demo.constants';
@@ -125,12 +125,17 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
     this.mapFilter = filter;
   }
 
-  onRunScenario(scenario: DemoScenario): void {
-    if (scenario.courier_id) {
-      this.onSelect(scenario.courier_id);
+  onScenarioApplied(result: ScenarioApplyResult): void {
+    if (result.focused_courier_id) {
+      this.onSelect(result.focused_courier_id);
     }
-    if (scenario.id === 'explore_routes') {
+    if (result.fit_map) {
       this.dispatchMap?.fitOperationArea();
+    }
+    if (result.reset_performed) {
+      void this.onDemoRefreshed();
+    } else {
+      void this.loadDemoInfo();
     }
     this.demoCenterOpen = false;
   }

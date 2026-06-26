@@ -12,7 +12,7 @@ import { DeliveryEventPayload } from '../services/dispatch/types';
 
 describe('demo.utils', () => {
   it('falls back to guided scenarios when demo info is null', () => {
-    expect(demoScenarios(null).length).toBe(3);
+    expect(demoScenarios(null).length).toBe(4);
   });
 
   it('describes next scheduled script', () => {

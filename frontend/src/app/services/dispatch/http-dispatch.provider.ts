@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DispatchProvider, DeliveryScope } from './dispatch-provider.interface';
-import { CourierDetail, Delivery, DemoInfo, ScenarioSnapshot } from './types';
+import { CourierDetail, Delivery, DemoInfo, ScenarioApplyResult, ScenarioPreview, ScenarioSnapshot } from './types';
 
 @Injectable({ providedIn: 'root' })
 export class HttpDispatchProvider extends DispatchProvider {
@@ -44,6 +44,24 @@ export class HttpDispatchProvider extends DispatchProvider {
     return this.http.post<{ status: string }>(`${this.base}/api/demo/trigger`, {
       courier_id: courierId,
       action,
+    });
+  }
+
+  demoPreviewScenario(scenarioId: string, courierId?: string): Observable<ScenarioPreview> {
+    return this.http.post<ScenarioPreview>(`${this.base}/api/demo/preview-scenario`, {
+      scenario_id: scenarioId,
+      courier_id: courierId || undefined,
+    });
+  }
+
+  demoApplyScenario(
+    scenarioId: string,
+    options?: { courierId?: string; confirmReset?: boolean },
+  ): Observable<ScenarioApplyResult> {
+    return this.http.post<ScenarioApplyResult>(`${this.base}/api/demo/apply-scenario`, {
+      scenario_id: scenarioId,
+      courier_id: options?.courierId || undefined,
+      confirm_reset: options?.confirmReset ?? false,
     });
   }
 }

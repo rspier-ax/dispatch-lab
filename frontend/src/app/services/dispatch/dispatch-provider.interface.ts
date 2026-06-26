@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { CourierDetail, Delivery, DemoInfo, ScenarioSnapshot } from './types';
+import { CourierDetail, Delivery, DemoInfo, ScenarioApplyResult, ScenarioPreview, ScenarioSnapshot } from './types';
 
 export type DeliveryScope = 'active' | 'delivered';
 
@@ -11,4 +11,12 @@ export abstract class DispatchProvider {
   abstract demoReset(): Observable<{ status: string }>;
   abstract demoAdvance(ticks: number): Observable<{ tick: number }>;
   abstract demoTrigger(courierId: string, action: string): Observable<{ status: string }>;
+  abstract demoPreviewScenario(
+    scenarioId: string,
+    courierId?: string,
+  ): Observable<ScenarioPreview>;
+  abstract demoApplyScenario(
+    scenarioId: string,
+    options?: { courierId?: string; confirmReset?: boolean },
+  ): Observable<ScenarioApplyResult>;
 }
