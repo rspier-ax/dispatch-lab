@@ -23,7 +23,7 @@ test.describe('DispatchLab operator flow', () => {
     const demoPanel = page.getByRole('complementary', { name: /Central da Demo/i });
     await expect(demoPanel.getByRole('heading', { name: 'Central da Demo' })).toBeVisible();
     await expect(demoPanel.getByText(/tick \d+/)).toBeVisible();
-    await expect(demoPanel.getByText('Ao vivo')).toBeVisible();
+    await expect(demoPanel.getByText('Ao vivo', { exact: true })).toBeVisible();
 
     await demoPanel.getByRole('button', { name: 'Resetar demo' }).click();
     await expect(page.getByRole('dialog', { name: /Resetar demo/i })).toBeVisible();
