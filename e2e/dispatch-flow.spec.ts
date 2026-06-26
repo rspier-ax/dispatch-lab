@@ -33,26 +33,42 @@ test.describe('DispatchLab operator flow', () => {
       timeout: 5_000,
     });
     await expect(page.getByLabel('Carregando operação POA Centro')).toBeHidden({ timeout: 30_000 });
-    await expect(demoPanel.getByText('tick 0')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('status', { name: /SSE conectado/i })).toBeVisible({
+      timeout: 30_000,
+    });
 
-    await demoPanel.getByRole('tab', { name: 'Cenários' }).click();
-    await expect(demoPanel.getByText('Modo atual · Operação ao vivo')).toBeVisible();
-    await expect(demoPanel.getByText('Surpresa de rede')).toBeVisible();
+    await page.getByRole('button', { name: /Central da demo/i }).click();
+    const demoPanelAfterReset = page.getByRole('complementary', { name: /Central da Demo/i });
+    await expect(demoPanelAfterReset).toBeVisible({ timeout: 15_000 });
+    await expect(demoPanelAfterReset.locator('.demo-center__tick')).toHaveText(/tick \d+/);
 
-    const exploreCard = demoPanel.locator('.demo-center__scenario-card', { hasText: 'Enquadrar mapa' });
+    const infoRes = await request.get('http://localhost:8080/api/demo/info');
+    expect(infoRes.ok()).toBeTruthy();
+    const info = (await infoRes.json()) as { tick: number };
+    expect(info.tick).toBeLessThan(20);
+
+    await demoPanelAfterReset.getByRole('tab', { name: 'Cenários' }).click();
+    await expect(demoPanelAfterReset.getByText('Modo atual · Operação ao vivo')).toBeVisible();
+    await expect(demoPanelAfterReset.getByText('Surpresa de rede')).toBeVisible();
+
+    const exploreCard = demoPanelAfterReset.locator('.demo-center__scenario-card', {
+      hasText: 'Enquadrar mapa',
+    });
     await exploreCard.getByRole('button', { name: 'Executar' }).click();
-    await expect(demoPanel).toBeVisible();
-    await expect(demoPanel.getByText(/Mapa enquadrado/i)).toBeVisible({ timeout: 10_000 });
+    await expect(demoPanelAfterReset).toBeVisible();
+    await expect(demoPanelAfterReset.getByText(/Mapa enquadrado/i)).toBeVisible({ timeout: 10_000 });
 
-    const surpriseCard = demoPanel.locator('.demo-center__scenario-card', { hasText: 'Surpresa de rede' });
+    const surpriseCard = demoPanelAfterReset.locator('.demo-center__scenario-card', {
+      hasText: 'Surpresa de rede',
+    });
     await surpriseCard.getByRole('button', { name: 'Executar' }).click();
     await expect(page.getByRole('dialog', { name: /Aplicar cenário/i })).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar' }).click();
-    await expect(demoPanel).toBeVisible();
-    await expect(demoPanel.getByText(/evento/i)).toBeVisible({ timeout: 10_000 });
+    await expect(demoPanelAfterReset).toBeVisible();
+    await expect(demoPanelAfterReset.getByText(/evento/i)).toBeVisible({ timeout: 10_000 });
 
-    await demoPanel.getByRole('tab', { name: 'Controle' }).click();
-    await expect(demoPanel.getByText(/Selecione um entregador/i)).toBeVisible();
+    await demoPanelAfterReset.getByRole('tab', { name: 'Controle' }).click();
+    await expect(demoPanelAfterReset.getByText(/Selecione um entregador/i)).toBeVisible();
 
     const triggerRes = await request.post('http://localhost:8080/api/demo/trigger', {
       data: { courier_id: 'POA-07', action: 'go_stale' },
@@ -60,7 +76,7 @@ test.describe('DispatchLab operator flow', () => {
     if (triggerRes.ok()) {
       await page.locator('.delivery-item').filter({ hasText: 'POA-07' }).first().click();
       await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
-      await expect(demoPanel.getByRole('button', { name: 'Forçar sinal atrasado' })).toBeDisabled();
+      await expect(demoPanelAfterReset.getByRole('button', { name: 'Forçar sinal atrasado' })).toBeDisabled();
 
       const reconnectRes = await request.post('http://localhost:8080/api/demo/trigger', {
         data: { courier_id: 'POA-07', action: 'reconnect' },
