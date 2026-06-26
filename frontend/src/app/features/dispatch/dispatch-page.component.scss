@@ -1,6 +1,6 @@
 .dispatch-shell {
   display: grid;
-  grid-template-rows: 68px minmax(0, 1fr) 64px;
+  grid-template-rows: 68px minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
   background: var(--app-bg);

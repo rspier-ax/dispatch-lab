@@ -1,0 +1,223 @@
+@if (open) {
+  <aside class="demo-center" role="complementary" aria-labelledby="demo-center-title">
+    <header class="demo-center__header">
+      <div class="demo-center__header-text">
+        <div class="demo-center__title-row">
+          <svg class="demo-center__icon" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M6 3h8l1 4H5L6 3zm-1 6h10l-1 8H6L5 9z" fill="currentColor" opacity="0.9" />
+          </svg>
+          <h2 id="demo-center-title" class="demo-center__title">Central da Demo</h2>
+        </div>
+        <p class="demo-center__subtitle">Simulação e controle operacional</p>
+      </div>
+      <button type="button" class="demo-center__close" aria-label="Fechar" (click)="onClose()">×</button>
+    </header>
+
+    <div class="demo-center__tabs" role="tablist" aria-label="Seções da Central da Demo">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          role="tab"
+          class="demo-center__tab"
+          [class.demo-center__tab--active]="activeTab === tab.id"
+          [attr.aria-selected]="activeTab === tab.id"
+          (click)="setTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <div class="demo-center__body">
+      <div class="demo-center__tab-panel" [class.demo-center__tab-panel--events]="activeTab === 'events'">
+      @switch (activeTab) {
+        @case ('control') {
+          <div class="demo-center__selectors">
+            <label class="demo-center__field">
+              <span>Cenário ativo</span>
+              <select disabled aria-disabled="true">
+                <option>Operação Centro POA</option>
+              </select>
+            </label>
+            <label class="demo-center__field">
+              <span>Entregador em foco</span>
+              <select [value]="focusCourierId" (change)="onFocusChange($any($event.target).value)">
+                @for (c of couriers; track c.id) {
+                  <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <section class="demo-center__section">
+            <h3>Simulações rápidas</h3>
+            <div class="demo-center__quick-grid">
+              <button
+                type="button"
+                class="demo-center__quick"
+                [disabled]="!controlsEnabled"
+                [title]="controlsEnabled ? 'Forçar sinal atrasado' : demoControlsHint"
+                (click)="onTriggerStale()"
+              >
+                Forçar sinal atrasado
+              </button>
+              <button
+                type="button"
+                class="demo-center__quick"
+                [disabled]="!controlsEnabled"
+                [title]="controlsEnabled ? 'Reconectar' : demoControlsHint"
+                (click)="onTriggerReconnect()"
+              >
+                Reconectar
+              </button>
+              <button type="button" class="demo-center__quick" disabled [title]="comingSoon">Sem sinal</button>
+              <button type="button" class="demo-center__quick" disabled [title]="comingSoon">Resetar rota</button>
+            </div>
+          </section>
+
+          <section class="demo-center__section">
+            <h3>Eventos automáticos</h3>
+            <div class="demo-center__toggle-grid">
+              @for (label of ['Perda de sinal', 'Reconexão automática', 'Atualização de ETA', 'Alertas SSE']; track label) {
+                <label class="demo-center__toggle demo-center__toggle--disabled" [title]="comingSoon">
+                  <input type="checkbox" disabled [checked]="label !== 'Perda de sinal'" />
+                  <span><strong>{{ label }}</strong></span>
+                </label>
+              }
+            </div>
+          </section>
+
+          <section class="demo-center__section">
+            <h3>Visualização</h3>
+            <div class="demo-center__toggle-grid demo-center__toggle-grid--viz">
+              <label class="demo-center__toggle">
+                <input
+                  type="checkbox"
+                  [checked]="mapPrefs.showBoundsOverlay"
+                  (change)="toggleMapPref('showBoundsOverlay', $any($event.target).checked)"
+                />
+                <span><strong>Exibir bbox</strong><small>Área de operação no mapa</small></span>
+              </label>
+              <label class="demo-center__toggle">
+                <input
+                  type="checkbox"
+                  [checked]="mapPrefs.showRoutePolyline"
+                  (change)="toggleMapPref('showRoutePolyline', $any($event.target).checked)"
+                />
+                <span><strong>Mostrar polyline</strong><small>Rota do selecionado</small></span>
+              </label>
+              <label class="demo-center__toggle">
+                <input
+                  type="checkbox"
+                  [checked]="highlightEnabled"
+                  (change)="onHighlightToggle($any($event.target).checked)"
+                />
+                <span><strong>{{ highlightLabel }}</strong><small>Destaque no mapa</small></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="demo-center__section demo-center__playback">
+            <div class="demo-center__playback-head">
+              <span>Tempo da simulação</span>
+              <span class="mono demo-center__tick">Tick {{ tick }}</span>
+            </div>
+            <input type="range" class="demo-center__slider" min="0" max="90" [value]="tick" disabled [title]="seekHint" />
+            <div class="demo-center__playback-meta">
+              <span class="mono">{{ simulationTimeLabel }}</span>
+              <div class="demo-center__speed">
+                <button type="button" class="demo-center__speed-btn demo-center__speed-btn--active">x1</button>
+                <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x2</button>
+                <button type="button" class="demo-center__speed-btn" disabled [title]="comingSoon">x5</button>
+              </div>
+            </div>
+            <p class="demo-center__next">{{ nextScriptLabel }}</p>
+            <div class="demo-center__progress" role="progressbar" [attr.aria-valuenow]="progressPercent">
+              <div class="demo-center__progress-bar" [style.width.%]="progressPercent"></div>
+            </div>
+          </section>
+        }
+
+        @case ('scenarios') {
+          <section class="demo-center__section">
+            <p class="demo-center__hint">Selecione um cenário e clique em <strong>Aplicar cenário</strong>.</p>
+            <div class="demo-center__scenarios">
+              @for (scenario of scenarios; track scenario.id) {
+                <button
+                  type="button"
+                  class="demo-center__scenario"
+                  [class.demo-center__scenario--selected]="selectedScenarioId === scenario.id"
+                  (click)="selectScenario(scenario)"
+                >
+                  <strong>{{ scenario.title }}</strong>
+                  <span>{{ scenario.description }}</span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+
+        @case ('events') {
+          <section class="demo-center__section demo-center__section--events">
+            <h3>Eventos recentes</h3>
+            <label class="demo-center__field">
+              <span>Filtrar por entregador</span>
+              <select
+                [value]="eventCourierFilter ?? ''"
+                (change)="eventCourierFilter = $any($event.target).value || null"
+              >
+                <option value="">Todos</option>
+                @for (c of couriers; track c.id) {
+                  <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="demo-center__events-feed">
+              @if (filteredEvents().length === 0) {
+                <p class="demo-center__empty demo-center__empty--feed">Aguardando eventos do stream…</p>
+              } @else {
+                @for (group of eventGroups(); track group.label) {
+                  <div class="demo-center__event-group">
+                    <h4>{{ group.label }}</h4>
+                    <ul class="demo-center__event-cards">
+                      @for (ev of group.items; track ev.timestamp + ev.type + ev.courier_id) {
+                        <li class="demo-center__event-card">
+                          <div class="demo-center__event-card-head">
+                            <span
+                              class="demo-center__event-badge demo-center__event-badge--{{ eventBadge(ev.type).tone }}"
+                            >
+                              {{ eventBadge(ev.type).label }}
+                            </span>
+                            <time class="mono demo-center__event-time">{{ formatTime(ev.timestamp) }}</time>
+                          </div>
+                          <p class="demo-center__event-card-title">
+                            <strong>{{ ev.courier_id }}</strong> — {{ eventTitle(ev) }}
+                          </p>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              }
+            </div>
+          </section>
+        }
+      }
+      </div>
+    </div>
+
+    <footer class="demo-center__footer">
+      <button
+        type="button"
+        class="demo-center__reset"
+        [disabled]="!controlsEnabled"
+        [title]="controlsEnabled ? 'Resetar cenário' : demoControlsHint"
+        (click)="onResetDemo()"
+      >
+        Resetar demo
+      </button>
+      <button type="button" class="demo-center__apply" (click)="onApplyScenario()">Aplicar cenário</button>
+    </footer>
+  </aside>
+}

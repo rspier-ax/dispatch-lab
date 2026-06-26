@@ -1,5 +1,7 @@
-import { DemoInfo } from '../services/dispatch/types';
+import { DemoInfo, DeliveryEventPayload } from '../services/dispatch/types';
 import { GUIDED_DEMO_SCENARIOS } from './demo.constants';
+
+export type DemoPanelTab = 'control' | 'scenarios' | 'events';
 
 export function demoScenarios(info: DemoInfo | null) {
   return info?.scenarios?.length ? info.scenarios : GUIDED_DEMO_SCENARIOS;
@@ -26,4 +28,38 @@ export function demoSimulationTimeLabel(tick: number, intervalMs = 1000): string
   const mm = String(t.getMinutes()).padStart(2, '0');
   const ss = String(t.getSeconds()).padStart(2, '0');
   return `${hh}:${mm}:${ss} · Ao vivo`;
+}
+
+export function filterDemoEvents(
+  events: DeliveryEventPayload[],
+  courierFilter: string | null,
+): DeliveryEventPayload[] {
+  const list = [...events].reverse();
+  if (!courierFilter) return list;
+  return list.filter((ev) => ev.courier_id === courierFilter);
+}
+
+export function eventTypeBadge(type: string): { label: string; tone: 'live' | 'stale' | 'neutral' | 'accent' } {
+  if (type.includes('stale') || type === 'went_stale') return { label: 'Sinal', tone: 'stale' };
+  if (type.includes('reconnect') || type === 'reconnected') return { label: 'Rede', tone: 'live' };
+  if (type.includes('eta')) return { label: 'ETA', tone: 'accent' };
+  if (type.includes('approach') || type.includes('pickup') || type.includes('transit')) {
+    return { label: 'Rota', tone: 'accent' };
+  }
+  return { label: 'Evento', tone: 'neutral' };
+}
+
+export function groupEventsByRecency(events: DeliveryEventPayload[]): {
+  label: string;
+  items: DeliveryEventPayload[];
+}[] {
+  if (events.length < 10) {
+    return [{ label: 'Recentes', items: events }];
+  }
+  const recent = events.slice(0, 5);
+  const older = events.slice(5);
+  return [
+    { label: 'Últimos eventos', items: recent },
+    { label: 'Anteriores', items: older },
+  ];
 }

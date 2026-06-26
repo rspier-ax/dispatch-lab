@@ -11,15 +11,18 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import * as L from 'leaflet';
-import { Courier, Landmark, MapBounds, TrackingState } from '../../services/dispatch/types';
+import { Courier, DeliveryEventPayload, DemoInfo, DemoScenario, Landmark, MapBounds, TrackingState } from '../../services/dispatch/types';
 import {
   courierMatchesFilter,
+  formatBbox,
   markerClass,
   remainingRouteLatLngs,
   traveledRouteLatLngs,
   trackingStateShortLabel,
   TrackingFilter,
 } from '../../lib/dispatch-view.utils';
+import { DemoMapPrefs } from '../../lib/demo.constants';
+import { DemoCenterPanelComponent } from '../demo-center/demo-center-panel.component';
 
 interface MarkerEntry {
   marker: L.Marker;
@@ -29,6 +32,7 @@ interface MarkerEntry {
 @Component({
   selector: 'app-dispatch-map',
   standalone: true,
+  imports: [DemoCenterPanelComponent],
   templateUrl: './dispatch-map.component.html',
   styleUrl: './dispatch-map.component.scss',
 })
@@ -43,9 +47,23 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() showBoundsOverlay = false;
   @Input() showRoutePolyline = true;
   @Input() highlightCourierId: string | null = null;
+  @Input() demoCenterOpen = false;
+  @Input() demoInfo: DemoInfo | null = null;
+  @Input() demoTick = 0;
+  @Input() demoEvents: DeliveryEventPayload[] = [];
+  @Input() demoMapPrefs: DemoMapPrefs = {
+    showBoundsOverlay: false,
+    showRoutePolyline: true,
+    highlightCourierId: null,
+  };
   @Output() filterChange = new EventEmitter<TrackingFilter>();
   @Output() selectCourier = new EventEmitter<string>();
-  @Output() openDemoCenter = new EventEmitter<void>();
+  @Output() toggleDemoCenter = new EventEmitter<void>();
+  @Output() demoClosed = new EventEmitter<void>();
+  @Output() demoFocusCourier = new EventEmitter<string>();
+  @Output() demoApplyScenario = new EventEmitter<DemoScenario>();
+  @Output() demoMapPrefsChange = new EventEmitter<DemoMapPrefs>();
+  @Output() demoRefreshed = new EventEmitter<void>();
 
   readonly filterOptions: { value: TrackingFilter; label: string }[] = [
     { value: 'all', label: 'Todos' },
@@ -56,6 +74,16 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
 
   /** Leaflet tiles stay hidden until the first fitBounds completes (no visible jump on load). */
   mapViewReady = false;
+
+  get bboxLabel(): string {
+    if (!this.bounds) return '';
+    return formatBbox(
+      this.bounds.min_lng,
+      this.bounds.min_lat,
+      this.bounds.max_lng,
+      this.bounds.max_lat,
+    );
+  }
 
   private map?: L.Map;
   private markers = new Map<string, MarkerEntry>();
