@@ -8,12 +8,16 @@ import (
 	"github.com/rspier-ax/dispatch-lab/backend/internal/store"
 )
 
-func TestPOA07GoesStaleAtTick45(t *testing.T) {
+func TestCourierGoesStaleAndReconnectsFromScripts(t *testing.T) {
 	sc, err := scenario.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := store.New(sc)
+	st.SetScripts([]domain.ScriptAction{
+		{CourierID: "POA-07", Tick: 45, Action: "go_stale"},
+		{CourierID: "POA-07", Tick: 90, Action: "reconnect"},
+	})
 	var states []domain.TrackingState
 	emit := func(eventType string, data interface{}) {
 		if eventType == "tracking_state_change" {
@@ -42,6 +46,32 @@ func TestPOA07GoesStaleAtTick45(t *testing.T) {
 	c, _ = st.GetCourier("POA-07")
 	if c.TrackingState != domain.TrackingLive {
 		t.Fatalf("expected live after reconnect at tick 90, got %s", c.TrackingState)
+	}
+}
+
+func TestTriggerActionRejectsInvalidState(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	sim := New(st, nil)
+
+	if !sim.TriggerAction("POA-01", "go_stale") {
+		t.Fatal("expected first go_stale to succeed on live courier")
+	}
+	c, ok := st.GetCourier("POA-01")
+	if !ok || c.TrackingState != domain.TrackingStale {
+		t.Fatalf("expected stale after go_stale, got %v ok=%v", c.TrackingState, ok)
+	}
+	if sim.TriggerAction("POA-01", "go_stale") {
+		t.Fatal("expected second go_stale to fail on stale courier")
+	}
+	if !sim.TriggerAction("POA-01", "reconnect") {
+		t.Fatal("expected reconnect to succeed on stale courier")
+	}
+	if sim.TriggerAction("POA-01", "reconnect") {
+		t.Fatal("expected second reconnect to fail on live courier")
 	}
 }
 

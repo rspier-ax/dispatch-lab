@@ -14,23 +14,23 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 
 ### Status strip (above tabs)
 
-- Simulated clock with **· Ao vivo**, current **Tick**, next scheduled script (or **Todos os scripts executados**), and a compact progress bar.
+- **Ao vivo** badge, elapsed operation time (`Tempo de operação · 1m 42s`), discrete tick counter, and a secondary line for the next scheduled network event (or a count of upcoming events).
+- No simulated wall clock or fixed 0–90 progress bar — events vary per session.
 
 ### Controle (Control)
 
-- **Entregador em foco** selects and highlights the courier on the map (no separate highlight toggle).
-- Quick actions: force stale / reconnect when demo controls are enabled.
+- Select a courier on the map or delivery list — quick actions target that selection (no separate focus dropdown).
+- **Forçar sinal atrasado** only works when the selected courier is **Ao vivo**; **Reconectar** only when **Sinal atrasado**.
 - Map display toggles (bbox, polyline).
 
 ### Cenários (Scenarios)
 
-- Pick a scenario card; **Aplicar cenário** stays disabled until you change the selection.
-- Click **Aplicar cenário** to open a confirmation dialog with a summary of effects (focus courier, scheduled scripts, reset warning, or block reason).
-- Scenarios:
-  - **POA-07 — sinal atrasado** — fixed scripts at ticks 45 and 90; focuses POA-07.
-  - **Sinal atrasado — entregador aleatório** — picks a live courier and schedules stale/reconnect at tick+20 and tick+50.
-  - **Explorar rotas** — fits the map to the operation area (visual only).
-  - **Estados de tracking** — guidance for comparing tracking badges.
+- Banner **Modo atual · Operação ao vivo** shows the live session summary.
+- Each card has an **Executar** button — no footer apply step.
+- **Surpresa de rede** / **Dois entregadores** — confirmation modal, schedules 2–4 network events from the current tick (does not reset the simulation).
+- **Enquadrar mapa** — instant, fits map to Centro Histórico.
+- **Estados de tracking** — opens Controle tab; focuses a stale courier if one exists.
+- **Fila na operação** — filters the delivery list to **Na fila** items only.
 
 ### Eventos (Events)
 
@@ -38,24 +38,26 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 
 ### Reset
 
-- **Resetar demo** opens a confirmation dialog summarizing what will change (tick back to 0, deliveries restored, default scripts, etc.) before restarting the simulation.
-- Confirm with **Confirmar reset** — the dialog shows **Reiniciando demo…** while the reload completes.
+- **Resetar demo** opens a confirmation dialog with three concise bullets (restart, restore state, new random event plan) before restarting the simulation.
+- Confirm with **Confirmar reset** — full-screen loader shows **Reiniciando demo…** until the operation reloads.
 - Requires demo controls (enabled by default locally).
 
 ### Confirmation before destructive actions
 
-Both **Resetar demo** and **Aplicar cenário** use the same confirmation dialog pattern:
+**Resetar demo** and scripted scenarios (**Surpresa de rede**, **Dois entregadores**) use the confirmation dialog:
 
 | Action | Dialog title | Primary button |
 |--------|--------------|----------------|
 | Reset | Resetar demo | Confirmar reset (red) |
-| Apply scenario | Aplicar cenário | Confirmar |
+| Scripted scenario | Aplicar cenário | Confirmar |
 
-The dialog lists bullet points describing effects. Scenario apply may show an extra warning when the simulation must restart first. Blocked actions show a reason instead of the confirm button.
+Visual scenarios (**Enquadrar mapa**, **Estados de tracking**, **Fila na operação**) run immediately via **Executar**.
 
-Quick actions (force stale / reconnect) apply immediately without confirmation.
+Quick actions (force stale / reconnect) apply immediately without confirmation when the courier state allows it.
 
-### Map overlay
+### Map controls
+
+- **Enquadrar mapa** (top-left of map) fits the viewport to the scenario bounds.
 
 - Scenario bbox and demo version appear as a discrete overlay at the bottom of the map (no fixed footer).
 
@@ -66,9 +68,11 @@ Quick actions (force stale / reconnect) apply immediately without confirmation.
 3. **Queued deliveries:** items with the **Na fila** badge share a courier in the scenario (20 deliveries / 15 couriers). The simulator animates only the primary active delivery per courier.
 4. **Delivery list filters:** phase (Na fila / Coletando / Em rota), courier, tracking state, sort by ETA or restaurant.
 
-## Recommended script: `#POA-07`
+## Live session (network events)
 
-Courier `#POA-07` follows Rua dos Andradas. At simulation tick 45 tracking becomes `stale` (GPS/connectivity loss). At tick 90 it reconnects to `live`. This path is deterministic (seed 42) and covered by E2E.
+On server boot and on every **Resetar demo**, the backend rolls a **session plan** of 2–4 scripted network events (`go_stale` / `reconnect`) on 1–2 live couriers. Plans are deterministic for a given session nonce but differ between resets.
+
+Courier positions, routes, and delivery lifecycle remain fixed (seed 42). Use **Surpresa de rede** or **Dois entregadores** to re-roll during a presentation, or **Forçar sinal atrasado** / **Reconectar** for manual control.
 
 ## Dev controls
 
@@ -91,22 +95,16 @@ curl -X POST http://localhost:8080/api/demo/preview-reset \
 
 curl -X POST http://localhost:8080/api/demo/preview-scenario \
   -H 'Content-Type: application/json' \
-  -d '{"scenario_id":"random_stale"}'
+  -d '{"scenario_id":"network_surprise"}'
 
 curl -X POST http://localhost:8080/api/demo/apply-scenario \
   -H 'Content-Type: application/json' \
-  -d '{"scenario_id":"random_stale"}'
+  -d '{"scenario_id":"network_surprise"}'
 ```
 
 ## Disabled controls (roadmap)
 
-These UI controls exist but remain disabled until backend support lands:
-
-- No-signal simulation
-- Per-courier route reset
-- Seek slider
-- Playback speed x2 / x5
-- Auto-event toggles
+Removed from the demo center until backend support lands: no-signal simulation, per-courier route reset, seek slider, playback speed, auto-event toggles.
 
 ## E2E and tick speed
 

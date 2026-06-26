@@ -140,7 +140,10 @@ export interface ScenarioApplyResult {
   delivery_id?: string;
   reset_performed: boolean;
   fit_map: boolean;
+  queue_focus?: boolean;
+  open_control_tab?: boolean;
   scripts?: ScriptAction[];
+  ui_hint?: string;
 }
 
 export interface DemoInfo {
@@ -150,4 +153,5 @@ export interface DemoInfo {
   scenarios: DemoScenario[];
   controls_enabled: boolean;
   scenario_seed: number;
+  session_nonce?: number;
 }

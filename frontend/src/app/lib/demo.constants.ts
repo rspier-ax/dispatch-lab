@@ -12,36 +12,42 @@ export const DEFAULT_DEMO_MAP_PREFS: DemoMapPrefs = {
   highlightCourierId: null,
 };
 
-export const COMING_SOON_TOOLTIP = 'Em breve — requer suporte no simulador.';
 export const DEMO_CONTROLS_TOOLTIP =
   'Controles indisponíveis neste backend. Reinicie com DEMO_CONTROLS=true ou use ./scripts/dev.sh.';
-export const SEEK_TOOLTIP = 'Seek em breve — avanço manual ainda não disponível.';
+
+/** Minimum full-screen loader duration after reset so the transition is readable. */
+export const DEMO_RESET_MIN_MS = 1200;
 
 export const GUIDED_DEMO_SCENARIOS: DemoScenario[] = [
   {
-    id: 'poa07_stale',
-    title: 'POA-07 — sinal atrasado',
+    id: 'network_surprise',
+    title: 'Surpresa de rede',
     description:
-      'Selecione DEL-007 e aguarde o tick 45 (~45s) para ver o entregador ficar com sinal atrasado na Rua dos Andradas.',
-    courier_id: 'POA-07',
-    delivery_id: 'DEL-007',
+      'Agenda 2–4 eventos de sinal atrasado/reconexão em entregadores ao vivo. Use para criar tensão durante a apresentação.',
   },
   {
-    id: 'random_stale',
-    title: 'Sinal atrasado — entregador aleatório',
+    id: 'double_stale',
+    title: 'Dois entregadores',
     description:
-      'Escolhe um entregador ao vivo e agenda perda de sinal e reconexão nos próximos ticks.',
+      'Dois entregadores perdem sinal em sequência rápida — ideal para mostrar impacto na lista de entregas.',
   },
   {
     id: 'explore_routes',
-    title: 'Explorar rotas nas ruas',
+    title: 'Enquadrar mapa',
     description:
-      'Selecione qualquer entregador ao vivo e observe a rota restante seguindo o grid viário do Centro Histórico.',
+      'Centraliza o mapa na área do Centro Histórico. Use no início da demo para contextualizar a operação.',
   },
   {
     id: 'tracking_states',
     title: 'Estados de tracking',
-    description: 'Compare badges Ao vivo, Sinal atrasado e Sem sinal na lista e no mapa.',
+    description:
+      'Foca um entregador com sinal atrasado (se houver) e abre a aba Controle para comparar badges e simulações manuais.',
+  },
+  {
+    id: 'queue_focus',
+    title: 'Fila na operação',
+    description:
+      'Filtra a lista de entregas para mostrar apenas itens na fila — entregas aguardando rota do entregador.',
   },
 ];
 
@@ -49,8 +55,8 @@ export const FALLBACK_DEMO_INFO: DemoInfo = {
   tick: 0,
   interval_ms: 1000,
   scripts: [
-    { courier_id: 'POA-07', tick: 45, action: 'go_stale' },
-    { courier_id: 'POA-07', tick: 90, action: 'reconnect' },
+    { courier_id: 'POA-03', tick: 30, action: 'go_stale' },
+    { courier_id: 'POA-03', tick: 60, action: 'reconnect' },
   ],
   scenarios: GUIDED_DEMO_SCENARIOS,
   controls_enabled: true,

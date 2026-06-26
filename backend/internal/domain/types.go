@@ -197,7 +197,10 @@ type ScenarioApplyResult struct {
 	DeliveryID       string         `json:"delivery_id,omitempty"`
 	ResetPerformed   bool           `json:"reset_performed"`
 	FitMap           bool           `json:"fit_map"`
+	QueueFocus       bool           `json:"queue_focus,omitempty"`
+	OpenControlTab   bool           `json:"open_control_tab,omitempty"`
 	Scripts          []ScriptAction `json:"scripts,omitempty"`
+	UIHint           string         `json:"ui_hint,omitempty"`
 }
 
 type DemoInfo struct {
@@ -207,4 +210,5 @@ type DemoInfo struct {
 	Scenarios        []DemoScenario `json:"scenarios"`
 	ControlsEnabled  bool           `json:"controls_enabled"`
 	ScenarioSeed     int            `json:"scenario_seed"`
+	SessionNonce     int            `json:"session_nonce,omitempty"`
 }

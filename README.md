@@ -11,7 +11,7 @@ Real-time operator dispatch console for monitoring active deliveries in **Porto 
 - **Live map** — 15 simulated couriers moving across POA Centro (Brazil - RS) on OpenStreetMap (Leaflet).
 - **Active delivery list** — restaurant, street, status, courier, and dynamic ETA.
 - **Courier detail** — route polyline, `live` / `stale` / `offline` tracking state, last seen, event timeline.
-- **Visibility gap demo** — courier `#POA-07` goes stale on Rua dos Andradas (tick 45) and reconnects (tick 90).
+- **Visibility gap demo** — session plan rolls 2–4 stale/reconnect events on live couriers (varies per boot/reset); positions and routes stay deterministic (seed 42).
 - **Connection resilience** — SSE stream with connected / reconnecting / disconnected indicator.
 
 ## Problem we demonstrate
@@ -20,7 +20,7 @@ When courier GPS or connectivity drops, operators lose visibility — the map po
 
 ## Demo workflow
 
-Map overview → select delivery / courier → inspect route and timeline → observe `#POA-07` stale → reconnect.
+Map overview → select delivery / courier → inspect route and timeline → apply **Surpresa de rede** or wait for session events → observe stale/reconnect.
 
 ### How to try the demo
 
@@ -88,7 +88,7 @@ Or use `./scripts/dev.sh` (bash).
 
 - **Go:** geo math, simulator stale/reconnect at ticks 45/90, SSE hub, REST handlers.
 - **Angular:** stream merge logic, connection indicator labels.
-- **E2E:** load map → select `#POA-07` → verify stale badge → verify reconnect.
+- **E2E:** load map → open demo center → reset with confirmation → apply **Surpresa de rede** → manual stale/reconnect via dev trigger.
 
 ## Limitations (v1)
 

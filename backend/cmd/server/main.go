@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/rspier-ax/dispatch-lab/backend/internal/demo"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/handlers"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/scenario"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/simulator"
@@ -22,6 +23,10 @@ func main() {
 	}
 
 	st := store.New(sc)
+	sessionNonce := demo.BootNonce(st)
+	if len(sc.Scripts) == 0 {
+		demo.ApplySessionPlan(st, sc.Seed, sessionNonce, nil)
+	}
 	hub := sse.NewHub()
 	emit := func(eventType string, data interface{}) {
 		hub.Broadcast(eventType, data)
@@ -31,7 +36,7 @@ func main() {
 	stop := make(chan struct{})
 	go sim.Run(stop)
 
-	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: handlers.DemoControlsEnabled()}
+	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: handlers.DemoControlsEnabled(), SessionNonce: sessionNonce}
 	mux := http.NewServeMux()
 	api.Register(mux)
 

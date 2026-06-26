@@ -174,6 +174,12 @@ func (s *Store) Tick() int {
 	return s.tick
 }
 
+func (s *Store) StartedAt() time.Time {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.startedAt
+}
+
 func (s *Store) Snapshot() domain.ScenarioSnapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

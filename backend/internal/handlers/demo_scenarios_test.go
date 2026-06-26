@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rspier-ax/dispatch-lab/backend/internal/demo"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/domain"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/handlers"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/scenario"
@@ -15,17 +16,18 @@ import (
 	"github.com/rspier-ax/dispatch-lab/backend/internal/store"
 )
 
-func TestDemoPreviewScenarioRandomStale(t *testing.T) {
+func TestDemoPreviewScenarioNetworkSurprise(t *testing.T) {
 	sc, err := scenario.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := store.New(sc)
+	demo.ApplySessionPlan(st, sc.Seed, 1, nil)
 	hub := sse.NewHub()
 	sim := simulator.New(st, hub.Broadcast)
-	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: true}
+	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: true, SessionNonce: 1}
 
-	body := []byte(`{"scenario_id":"random_stale"}`)
+	body := []byte(`{"scenario_id":"network_surprise"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/demo/preview-scenario", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	mux := http.NewServeMux()
@@ -42,11 +44,37 @@ func TestDemoPreviewScenarioRandomStale(t *testing.T) {
 	if !preview.CanApply {
 		t.Fatalf("expected can_apply true, got false: %s", preview.BlockReason)
 	}
-	if preview.FocusedCourierID == "" {
-		t.Fatal("expected focused courier")
+	if len(preview.Scripts) < 2 || len(preview.Scripts) > 4 {
+		t.Fatalf("expected 2–4 scripts, got %d", len(preview.Scripts))
 	}
-	if len(preview.Scripts) != 2 {
-		t.Fatalf("expected 2 scripts, got %d", len(preview.Scripts))
+}
+
+func TestDemoPreviewScenarioDoubleStale(t *testing.T) {
+	sc, err := scenario.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(sc)
+	hub := sse.NewHub()
+	sim := simulator.New(st, hub.Broadcast)
+	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: true, SessionNonce: 2}
+
+	body := []byte(`{"scenario_id":"double_stale"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/demo/preview-scenario", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	mux := http.NewServeMux()
+	api.Register(mux)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var preview domain.ScenarioPreview
+	if err := json.NewDecoder(rec.Body).Decode(&preview); err != nil {
+		t.Fatal(err)
+	}
+	if len(preview.Scripts) != 4 {
+		t.Fatalf("expected 4 scripts for double_stale, got %d", len(preview.Scripts))
 	}
 }
 

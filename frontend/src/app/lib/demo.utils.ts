@@ -8,27 +8,29 @@ export function demoScenarios(info: DemoInfo | null) {
   return info?.scenarios?.length ? info.scenarios : GUIDED_DEMO_SCENARIOS;
 }
 
-export function demoNextScriptLabel(info: DemoInfo | null, tick: number): string {
-  if (!info?.scripts.length) return 'Nenhum script agendado';
-  const next = info.scripts.find((s) => s.tick > tick);
-  if (!next) return 'Todos os scripts executados';
+export function demoElapsedLabel(tick: number, intervalMs = 1000): string {
+  const totalSec = Math.floor((tick * intervalMs) / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s}s`;
+}
+
+export function demoSessionStatusLabel(info: DemoInfo | null, tick: number): string {
+  if (!info?.scripts?.length) {
+    return 'Operação ao vivo · sem eventos agendados';
+  }
+  const upcoming = info.scripts.filter((s) => s.tick > tick);
+  if (upcoming.length === 0) {
+    return 'Operação ao vivo · sem eventos agendados';
+  }
+  const next = upcoming[0];
   const secs = Math.max(0, next.tick - tick) * (info.interval_ms / 1000);
   const action = next.action === 'go_stale' ? 'sinal atrasado' : 'reconexão';
-  return `${next.courier_id} · ${action} no tick ${next.tick} (~${Math.round(secs)}s)`;
-}
-
-export function demoProgressPercent(tick: number, target = 90): number {
-  return Math.min(100, Math.round((tick / target) * 100));
-}
-
-export function demoSimulationTimeLabel(tick: number, intervalMs = 1000): string {
-  const base = new Date();
-  base.setHours(14, 30, 0, 0);
-  const t = new Date(base.getTime() + tick * intervalMs);
-  const hh = String(t.getHours()).padStart(2, '0');
-  const mm = String(t.getMinutes()).padStart(2, '0');
-  const ss = String(t.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss} · Ao vivo`;
+  if (upcoming.length === 1) {
+    return `Próximo evento · ${next.courier_id} · ${action} em ~${Math.round(secs)}s`;
+  }
+  return `Operação ao vivo · ${upcoming.length} eventos agendados · próximo: ${next.courier_id} em ~${Math.round(secs)}s`;
 }
 
 export function filterDemoEvents(

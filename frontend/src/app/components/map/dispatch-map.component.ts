@@ -56,14 +56,14 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
     showRoutePolyline: true,
     highlightCourierId: null,
   };
+  @Input() refreshDemo!: () => Promise<void>;
+  @Input() reloadDemoInfo!: () => Promise<void>;
   @Output() filterChange = new EventEmitter<TrackingFilter>();
   @Output() selectCourier = new EventEmitter<string>();
   @Output() toggleDemoCenter = new EventEmitter<void>();
   @Output() demoClosed = new EventEmitter<void>();
-  @Output() demoFocusCourier = new EventEmitter<string>();
   @Output() demoApplyScenario = new EventEmitter<ScenarioApplyResult>();
   @Output() demoMapPrefsChange = new EventEmitter<DemoMapPrefs>();
-  @Output() demoRefreshed = new EventEmitter<void>();
 
   readonly filterOptions: { value: TrackingFilter; label: string }[] = [
     { value: 'all', label: 'Todos' },

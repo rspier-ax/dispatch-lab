@@ -20,7 +20,6 @@ func TestDemoPreviewReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	st := store.New(sc)
-	st.SetTick(42)
 	hub := sse.NewHub()
 	sim := simulator.New(st, hub.Broadcast)
 	api := &handlers.API{Store: st, Hub: hub, Sim: sim, ControlsEnabled: true}
@@ -41,17 +40,11 @@ func TestDemoPreviewReset(t *testing.T) {
 	if !preview.CanApply {
 		t.Fatalf("expected can_apply true: %s", preview.BlockReason)
 	}
-	if len(preview.SummaryLines) < 3 {
-		t.Fatalf("expected summary lines, got %+v", preview.SummaryLines)
+	if len(preview.SummaryLines) != 3 {
+		t.Fatalf("expected 3 summary lines, got %+v", preview.SummaryLines)
 	}
-	foundTick := false
-	for _, line := range preview.SummaryLines {
-		if line == "Simulação volta ao tick 0 (agora: tick 42)." {
-			foundTick = true
-		}
-	}
-	if !foundTick {
-		t.Fatalf("expected current tick in summary: %+v", preview.SummaryLines)
+	if preview.SummaryLines[0] != "Reinicia a operação do zero." {
+		t.Fatalf("unexpected first line: %s", preview.SummaryLines[0])
 	}
 }
 
@@ -70,7 +63,6 @@ func TestDemoPreviewResetControlsDisabled(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound && rec.Code != http.StatusMethodNotAllowed {
-		// route not registered when controls disabled
 		if rec.Code == http.StatusOK {
 			t.Fatal("expected preview-reset route unavailable when controls disabled")
 		}

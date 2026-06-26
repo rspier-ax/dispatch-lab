@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Courier, Delivery, TrackingState } from '../../services/dispatch/types';
 import {
@@ -29,11 +29,12 @@ interface DeliveryRow {
   templateUrl: './delivery-list.component.html',
   styleUrl: './delivery-list.component.scss',
 })
-export class DeliveryListComponent {
+export class DeliveryListComponent implements OnChanges {
   @Input({ required: true }) deliveries: Delivery[] = [];
   @Input({ required: true }) couriers: Courier[] = [];
   @Input() selectedCourierId: string | null = null;
   @Input() filter: TrackingFilter = 'all';
+  @Input() externalPhaseFilter: DeliveryPhaseFilter | null = null;
   @Output() selectCourier = new EventEmitter<string>();
   @Output() filterChange = new EventEmitter<TrackingFilter>();
 
@@ -63,6 +64,12 @@ export class DeliveryListComponent {
     { value: 'id', label: 'ID' },
   ];
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['externalPhaseFilter']?.currentValue) {
+      this.phaseFilter = changes['externalPhaseFilter'].currentValue;
+    }
+  }
+
   get activeCount(): number {
     return this.deliveries.filter((d) => d.status !== 'delivered').length;
   }
@@ -80,6 +87,10 @@ export class DeliveryListComponent {
       return this.sortOptions.filter((o) => o.value !== 'eta');
     }
     return this.sortOptions;
+  }
+
+  get effectivePhaseFilter(): DeliveryPhaseFilter {
+    return this.externalPhaseFilter ?? this.phaseFilter;
   }
 
   get rows(): DeliveryRow[] {
@@ -101,7 +112,7 @@ export class DeliveryListComponent {
         if (this.courierFilter && delivery.courier_id !== this.courierFilter) return false;
         if (this.listTab === 'completed') return true;
         if (!courierMatchesFilter(trackingState, this.filter)) return false;
-        return matchesPhaseFilter(this.phaseFilter, delivery, this.couriers, queued);
+        return matchesPhaseFilter(this.effectivePhaseFilter, delivery, this.couriers, queued);
       });
 
     const sort = this.listTab === 'completed' && this.sortBy === 'eta' ? 'restaurant' : this.sortBy;

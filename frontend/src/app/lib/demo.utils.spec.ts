@@ -1,8 +1,7 @@
 import {
-  demoNextScriptLabel,
-  demoProgressPercent,
+  demoElapsedLabel,
   demoScenarios,
-  demoSimulationTimeLabel,
+  demoSessionStatusLabel,
   filterDemoEvents,
   eventTypeBadge,
   groupEventsByRecency,
@@ -14,27 +13,31 @@ import { DeliveryEventPayload } from '../services/dispatch/types';
 
 describe('demo.utils', () => {
   it('falls back to guided scenarios when demo info is null', () => {
-    expect(demoScenarios(null).length).toBe(4);
+    expect(demoScenarios(null).length).toBe(5);
   });
 
-  it('describes next scheduled script', () => {
-    const label = demoNextScriptLabel(FALLBACK_DEMO_INFO, 10);
-    expect(label).toContain('POA-07');
-    expect(label).toContain('tick 45');
+  it('formats elapsed operation time from tick', () => {
+    expect(demoElapsedLabel(0)).toBe('0s');
+    expect(demoElapsedLabel(42)).toBe('42s');
+    expect(demoElapsedLabel(102)).toBe('1m 42s');
   });
 
-  it('reports completed scripts after tick 90', () => {
-    expect(demoNextScriptLabel(FALLBACK_DEMO_INFO, 95)).toBe('Todos os scripts executados');
+  it('describes next scheduled event in session status', () => {
+    const label = demoSessionStatusLabel(FALLBACK_DEMO_INFO, 10);
+    expect(label).toContain('POA-03');
+    expect(label).toContain('~20s');
   });
 
-  it('computes progress toward tick 90', () => {
-    expect(demoProgressPercent(45)).toBe(50);
-    expect(demoProgressPercent(100)).toBe(100);
+  it('reports no upcoming events when scripts are exhausted', () => {
+    expect(demoSessionStatusLabel(FALLBACK_DEMO_INFO, 95)).toBe(
+      'Operação ao vivo · sem eventos agendados',
+    );
   });
 
-  it('formats simulation clock from tick', () => {
-    expect(demoSimulationTimeLabel(0)).toBe('14:30:00 · Ao vivo');
-    expect(demoSimulationTimeLabel(60)).toBe('14:31:00 · Ao vivo');
+  it('reports empty session when no scripts', () => {
+    expect(demoSessionStatusLabel({ ...FALLBACK_DEMO_INFO, scripts: [] }, 0)).toBe(
+      'Operação ao vivo · sem eventos agendados',
+    );
   });
 
   it('filters events by courier', () => {
@@ -66,9 +69,9 @@ describe('demo.utils', () => {
       {
         can_apply: true,
         requires_reset: true,
-        summary_lines: ['Focará POA-07.'],
+        summary_lines: ['Agendará 2 eventos de rede.'],
       },
-      'POA-07 — sinal atrasado',
+      'Surpresa de rede',
     );
     expect(action.kind).toBe('apply_scenario');
     expect(action.title).toBe('Aplicar cenário');
@@ -80,7 +83,7 @@ describe('demo.utils', () => {
     const action = toActionPreviewFromReset({
       can_apply: true,
       requires_reset: false,
-      summary_lines: ['Simulação volta ao tick 0 (agora: tick 42).'],
+      summary_lines: ['Reinicia a operação do zero.'],
     });
     expect(action.kind).toBe('reset');
     expect(action.severity).toBe('destructive');

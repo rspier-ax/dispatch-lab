@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rspier-ax/dispatch-lab/backend/internal/domain"
+	"github.com/rspier-ax/dispatch-lab/backend/internal/demo"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/scenario"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/simulator"
 	"github.com/rspier-ax/dispatch-lab/backend/internal/sse"
@@ -19,6 +20,7 @@ type API struct {
 	Hub             *sse.Hub
 	Sim             *simulator.Simulator
 	ControlsEnabled bool
+	SessionNonce    int
 }
 
 func (a *API) Register(mux *http.ServeMux) {
@@ -95,6 +97,7 @@ func (a *API) handleDemoInfo(w http.ResponseWriter, _ *http.Request) {
 		Scripts:         sc.Scripts,
 		ControlsEnabled: a.ControlsEnabled,
 		ScenarioSeed:    sc.Seed,
+		SessionNonce:    a.SessionNonce,
 		Scenarios:       demoScenarios(),
 	})
 }
@@ -110,6 +113,8 @@ func (a *API) handleDemoReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.Sim.Reset(sc)
+	a.SessionNonce++
+	demo.ApplySessionPlan(a.Store, sc.Seed, a.SessionNonce, nil)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "reset"})
 }
 
@@ -149,10 +154,34 @@ func (a *API) handleDemoTrigger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !a.Sim.TriggerAction(req.CourierID, req.Action) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown action"})
+		msg := triggerBlockReason(a.Store, req.CourierID, req.Action)
+		if msg == "" {
+			msg = "Ação inválida para este entregador."
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": msg})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func triggerBlockReason(st *store.Store, courierID, action string) string {
+	c, ok := st.GetCourier(courierID)
+	if !ok {
+		return "Entregador não encontrado."
+	}
+	switch action {
+	case "go_stale":
+		if c.TrackingState != domain.TrackingLive {
+			return "Entregador já está com sinal atrasado ou sem sinal."
+		}
+	case "reconnect":
+		if c.TrackingState != domain.TrackingStale {
+			return "Entregador já está ao vivo."
+		}
+	default:
+		return "Ação desconhecida."
+	}
+	return ""
 }
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {

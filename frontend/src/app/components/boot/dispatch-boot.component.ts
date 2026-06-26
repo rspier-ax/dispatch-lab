@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-dispatch-boot',
@@ -6,4 +6,6 @@ import { Component } from '@angular/core';
   templateUrl: './dispatch-boot.component.html',
   styleUrl: './dispatch-boot.component.scss',
 })
-export class DispatchBootComponent {}
+export class DispatchBootComponent {
+  @Input() message = 'Carregando operação…';
+}
