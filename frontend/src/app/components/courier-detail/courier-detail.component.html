@@ -16,7 +16,7 @@
     </header>
 
     <div class="detail__badge-row">
-      <span class="badge" [class]="'badge--' + detail.courier.tracking_state">
+      <span [class]="'badge badge--' + detail.courier.tracking_state">
         {{ trackingLabel(detail.courier.tracking_state) }}
       </span>
       <span class="detail__signal mono">{{ signalAge }}</span>
@@ -97,7 +97,7 @@
         <ol class="timeline">
           @for (ev of detail.timeline; track ev.id) {
             @let display = timelineDisplay(ev);
-            <li class="timeline__item" [class]="'timeline__item--' + display.tone">
+            <li [class]="'timeline__item timeline__item--' + display.tone">
               <span class="timeline__dot" aria-hidden="true"></span>
               <div class="timeline__content">
                 <time class="mono">{{ formatTime(ev.timestamp) }}</time>

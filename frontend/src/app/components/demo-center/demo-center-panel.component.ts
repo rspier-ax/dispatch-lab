@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import {
   Courier,
   DeliveryEventPayload,
@@ -12,6 +12,7 @@ import {
   DEMO_CONTROLS_TOOLTIP,
   DemoMapPrefs,
 } from '../../lib/demo.constants';
+import { LOADING_LABELS } from '../../lib/loading-labels';
 import {
   DemoPanelTab,
   demoElapsedLabel,
@@ -24,7 +25,9 @@ import {
   toActionPreviewFromScenario,
 } from '../../lib/demo.utils';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
+import { ToastService } from '../../core/ui/toast.service';
 import { DemoActionConfirmComponent } from './demo-action-confirm.component';
+import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { firstValueFrom } from 'rxjs';
 
 const INSTANT_SCENARIOS = new Set(['explore_routes', 'tracking_states', 'queue_focus']);
@@ -32,7 +35,7 @@ const INSTANT_SCENARIOS = new Set(['explore_routes', 'tracking_states', 'queue_f
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
-  imports: [DemoActionConfirmComponent],
+  imports: [DemoActionConfirmComponent, SpinnerComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
@@ -56,6 +59,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   @Output() mapPrefsChange = new EventEmitter<DemoMapPrefs>();
 
   readonly demoControlsHint = DEMO_CONTROLS_TOOLTIP;
+  readonly LOADING_LABELS = LOADING_LABELS;
   readonly tabs: { id: DemoPanelTab; label: string }[] = [
     { id: 'control', label: 'Controle' },
     { id: 'scenarios', label: 'Cenários' },
@@ -69,14 +73,16 @@ export class DemoCenterPanelComponent implements OnChanges {
   confirmAction: DemoActionKind | null = null;
   confirmScenarioId: string | null = null;
   applying = false;
-  scenarioFeedback: string | null = null;
+  scenarioBlockFeedback: string | null = null;
   runningScenarioId: string | null = null;
+  triggeringAction: 'go_stale' | 'reconnect' | null = null;
 
-  constructor(private readonly provider: HttpDispatchProvider) {}
+  private readonly provider = inject(HttpDispatchProvider);
+  private readonly toast = inject(ToastService);
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']?.currentValue === false) {
-      this.scenarioFeedback = null;
+      this.scenarioBlockFeedback = null;
     }
   }
 
@@ -89,7 +95,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   get footerBusy(): boolean {
-    return this.applying;
+    return this.applying || !!this.runningScenarioId || !!this.triggeringAction;
   }
 
   get elapsedLabel(): string {
@@ -106,11 +112,19 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   get canForceStale(): boolean {
-    return this.controlsEnabled && this.selectedCourier?.tracking_state === 'live';
+    return (
+      this.controlsEnabled &&
+      this.selectedCourier?.tracking_state === 'live' &&
+      !this.triggeringAction
+    );
   }
 
   get canReconnect(): boolean {
-    return this.controlsEnabled && this.selectedCourier?.tracking_state === 'stale';
+    return (
+      this.controlsEnabled &&
+      this.selectedCourier?.tracking_state === 'stale' &&
+      !this.triggeringAction
+    );
   }
 
   get staleButtonTitle(): string {
@@ -167,6 +181,10 @@ export class DemoCenterPanelComponent implements OnChanges {
     return this.runningScenarioId === id;
   }
 
+  isTriggering(action: 'go_stale' | 'reconnect'): boolean {
+    return this.triggeringAction === action;
+  }
+
   async runScenario(scenario: DemoScenario): Promise<void> {
     if (this.applying || this.runningScenarioId) return;
 
@@ -179,9 +197,10 @@ export class DemoCenterPanelComponent implements OnChanges {
       this.applying = true;
       const preview = await firstValueFrom(this.provider.demoPreviewScenario(scenario.id));
       if (!preview.can_apply) {
-        this.scenarioFeedback = preview.block_reason ?? 'Cenário indisponível.';
+        this.scenarioBlockFeedback = preview.block_reason ?? 'Cenário indisponível.';
         return;
       }
+      this.scenarioBlockFeedback = null;
       this.confirmAction = 'apply_scenario';
       this.confirmScenarioId = scenario.id;
       this.confirmPreview = toActionPreviewFromScenario(preview, scenario.title);
@@ -214,20 +233,40 @@ export class DemoCenterPanelComponent implements OnChanges {
   async onConfirmAccepted(): Promise<void> {
     if (!this.confirmPreview?.can_apply || !this.confirmAction || this.applying) return;
 
+    const toastId =
+      this.confirmAction === 'reset' ? 'demo-reset' : `scenario-${this.confirmScenarioId}`;
+
     try {
       this.applying = true;
+      this.toast.loading(
+        this.confirmAction === 'reset'
+          ? LOADING_LABELS.pending.resettingDemo
+          : LOADING_LABELS.pending.applyingScenario,
+        { id: toastId },
+      );
+
       if (this.confirmAction === 'reset') {
         await firstValueFrom(this.provider.demoReset());
         if (this.refreshDemo) {
           await this.refreshDemo();
         }
-        this.scenarioFeedback = null;
+        this.scenarioBlockFeedback = null;
+        this.toast.success(LOADING_LABELS.success.demoReset, { id: toastId });
       } else if (this.confirmAction === 'apply_scenario' && this.confirmScenarioId) {
         await this.executeScenario(
           this.confirmScenarioId,
           this.confirmPreview.requires_reset ?? false,
+          toastId,
         );
       }
+      this.closeConfirm();
+    } catch {
+      this.toast.error(
+        this.confirmAction === 'reset'
+          ? LOADING_LABELS.error.resetFailed
+          : LOADING_LABELS.error.scenarioFailed,
+        { id: toastId },
+      );
       this.closeConfirm();
     } finally {
       this.applying = false;
@@ -239,18 +278,46 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   async onTriggerStale(): Promise<void> {
-    if (!this.canForceStale || !this.selectedCourierId) return;
-    await firstValueFrom(this.provider.demoTrigger(this.selectedCourierId, 'go_stale'));
+    if (!this.canForceStale || !this.selectedCourierId || this.triggeringAction) return;
+
+    try {
+      this.triggeringAction = 'go_stale';
+      await firstValueFrom(this.provider.demoTrigger(this.selectedCourierId, 'go_stale'));
+      this.toast.success(LOADING_LABELS.success.staleForced);
+    } catch {
+      this.toast.error(LOADING_LABELS.error.triggerFailed);
+    } finally {
+      this.triggeringAction = null;
+    }
   }
 
   async onTriggerReconnect(): Promise<void> {
-    if (!this.canReconnect || !this.selectedCourierId) return;
-    await firstValueFrom(this.provider.demoTrigger(this.selectedCourierId, 'reconnect'));
+    if (!this.canReconnect || !this.selectedCourierId || this.triggeringAction) return;
+
+    try {
+      this.triggeringAction = 'reconnect';
+      await firstValueFrom(this.provider.demoTrigger(this.selectedCourierId, 'reconnect'));
+      this.toast.success(LOADING_LABELS.success.reconnected);
+    } catch {
+      this.toast.error(LOADING_LABELS.error.triggerFailed);
+    } finally {
+      this.triggeringAction = null;
+    }
   }
 
-  private async executeScenario(scenarioId: string, confirmReset: boolean): Promise<void> {
+  private async executeScenario(
+    scenarioId: string,
+    confirmReset: boolean,
+    toastId?: string,
+  ): Promise<void> {
+    const id = toastId ?? `scenario-${scenarioId}`;
+
     try {
       this.runningScenarioId = scenarioId;
+      if (!toastId) {
+        this.toast.loading(LOADING_LABELS.pending.applyingScenario, { id });
+      }
+
       const result = await firstValueFrom(
         this.provider.demoApplyScenario(scenarioId, { confirmReset }),
       );
@@ -262,10 +329,11 @@ export class DemoCenterPanelComponent implements OnChanges {
       if (result.open_control_tab) {
         this.activeTab = 'control';
       }
-      this.scenarioFeedback = result.ui_hint ?? 'Cenário aplicado.';
+      this.scenarioBlockFeedback = null;
+      this.toast.success(result.ui_hint ?? LOADING_LABELS.success.scenarioApplied, { id });
       this.applyScenario.emit(result);
     } catch {
-      this.scenarioFeedback = 'Não foi possível executar o cenário.';
+      this.toast.error(LOADING_LABELS.error.scenarioFailed, { id });
     } finally {
       this.runningScenarioId = null;
     }

@@ -30,6 +30,9 @@
 
 .dispatch-boot__message {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-secondary);

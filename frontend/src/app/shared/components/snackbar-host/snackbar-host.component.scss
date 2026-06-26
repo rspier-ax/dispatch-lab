@@ -1,0 +1,118 @@
+.snackbar-host {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9000;
+  display: grid;
+  gap: 0.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.snackbar {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  align-items: stretch;
+  min-height: 2.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: snackbar-in 0.22s ease-out;
+}
+
+.snackbar__bar {
+  background: var(--accent);
+}
+
+.snackbar--success .snackbar__bar {
+  background: var(--live);
+}
+
+.snackbar--error .snackbar__bar {
+  background: var(--danger);
+}
+
+.snackbar--info .snackbar__bar {
+  background: var(--accent);
+}
+
+.snackbar--loading .snackbar__bar {
+  background: var(--accent);
+}
+
+.snackbar__content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.snackbar__message {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.snackbar--loading .snackbar__content {
+  color: var(--accent);
+}
+
+.snackbar--success .snackbar__content {
+  color: var(--text);
+}
+
+.snackbar--error .snackbar__content {
+  color: var(--danger);
+}
+
+.snackbar__dismiss {
+  align-self: start;
+  margin: 0.25rem 0.375rem 0 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.snackbar__dismiss:hover {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+@keyframes snackbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snackbar {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .snackbar-host {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+}

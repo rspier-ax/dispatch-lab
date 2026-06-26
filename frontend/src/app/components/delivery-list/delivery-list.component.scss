@@ -201,7 +201,7 @@
 
 .delivery-item__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.375rem;
 }
@@ -286,6 +286,9 @@
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .delivery-item__badge--meta-queued-wait {
