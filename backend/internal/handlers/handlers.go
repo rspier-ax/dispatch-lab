@@ -36,6 +36,7 @@ func (a *API) Register(mux *http.ServeMux) {
 		mux.HandleFunc("POST /api/demo/trigger", a.handleDemoTrigger)
 		mux.HandleFunc("POST /api/demo/preview-scenario", a.handleDemoPreviewScenario)
 		mux.HandleFunc("POST /api/demo/apply-scenario", a.handleDemoApplyScenario)
+		mux.HandleFunc("POST /api/demo/preview-reset", a.handleDemoPreviewReset)
 	}
 }
 

@@ -38,7 +38,22 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 
 ### Reset
 
-- **Resetar demo** restarts the simulation at tick 0 without restarting the server (requires demo controls).
+- **Resetar demo** opens a confirmation dialog summarizing what will change (tick back to 0, deliveries restored, default scripts, etc.) before restarting the simulation.
+- Confirm with **Confirmar reset** — the dialog shows **Reiniciando demo…** while the reload completes.
+- Requires demo controls (enabled by default locally).
+
+### Confirmation before destructive actions
+
+Both **Resetar demo** and **Aplicar cenário** use the same confirmation dialog pattern:
+
+| Action | Dialog title | Primary button |
+|--------|--------------|----------------|
+| Reset | Resetar demo | Confirmar reset (red) |
+| Apply scenario | Aplicar cenário | Confirmar |
+
+The dialog lists bullet points describing effects. Scenario apply may show an extra warning when the simulation must restart first. Blocked actions show a reason instead of the confirm button.
+
+Quick actions (force stale / reconnect) apply immediately without confirmation.
 
 ### Map overlay
 
@@ -70,6 +85,10 @@ Production deploy (`fly.toml`) sets `DEMO_CONTROLS=false`.
 ## API (demo controls enabled)
 
 ```bash
+curl -X POST http://localhost:8080/api/demo/preview-reset \
+  -H 'Content-Type: application/json' \
+  -d '{}'
+
 curl -X POST http://localhost:8080/api/demo/preview-scenario \
   -H 'Content-Type: application/json' \
   -d '{"scenario_id":"random_stale"}'

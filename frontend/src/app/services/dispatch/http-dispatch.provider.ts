@@ -1,3 +1,4 @@
+import { ResetPreview } from '../../lib/demo-action.types';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
@@ -63,5 +64,9 @@ export class HttpDispatchProvider extends DispatchProvider {
       courier_id: options?.courierId || undefined,
       confirm_reset: options?.confirmReset ?? false,
     });
+  }
+
+  demoPreviewReset(): Observable<ResetPreview> {
+    return this.http.post<ResetPreview>(`${this.base}/api/demo/preview-reset`, {});
   }
 }

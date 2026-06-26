@@ -1,4 +1,5 @@
-import { DemoInfo, DeliveryEventPayload } from '../services/dispatch/types';
+import { DemoInfo, DeliveryEventPayload, ScenarioPreview } from '../services/dispatch/types';
+import { DemoActionPreview, ResetPreview } from './demo-action.types';
 import { GUIDED_DEMO_SCENARIOS } from './demo.constants';
 
 export type DemoPanelTab = 'control' | 'scenarios' | 'events';
@@ -62,4 +63,36 @@ export function groupEventsByRecency(events: DeliveryEventPayload[]): {
     { label: 'Últimos eventos', items: recent },
     { label: 'Anteriores', items: older },
   ];
+}
+
+export function toActionPreviewFromScenario(
+  preview: ScenarioPreview,
+  scenarioTitle: string,
+): DemoActionPreview {
+  return {
+    kind: 'apply_scenario',
+    title: 'Aplicar cenário',
+    subtitle: scenarioTitle,
+    can_apply: preview.can_apply,
+    block_reason: preview.block_reason,
+    severity: 'normal',
+    summary_lines: preview.summary_lines,
+    requires_reset: preview.requires_reset,
+    confirm_label: 'Confirmar',
+    applying_label: 'Aplicando…',
+  };
+}
+
+export function toActionPreviewFromReset(preview: ResetPreview): DemoActionPreview {
+  return {
+    kind: 'reset',
+    title: 'Resetar demo',
+    can_apply: preview.can_apply,
+    block_reason: preview.block_reason,
+    severity: 'destructive',
+    summary_lines: preview.summary_lines,
+    requires_reset: false,
+    confirm_label: 'Confirmar reset',
+    applying_label: 'Reiniciando demo…',
+  };
 }

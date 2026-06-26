@@ -12,8 +12,8 @@ import {
   DemoInfo,
   DemoScenario,
   ScenarioApplyResult,
-  ScenarioPreview,
 } from '../../services/dispatch/types';
+import { DemoActionKind, DemoActionPreview } from '../../lib/demo-action.types';
 import { timelineDisplay, formatTime } from '../../lib/dispatch-view.utils';
 import {
   COMING_SOON_TOOLTIP,
@@ -30,15 +30,17 @@ import {
   eventTypeBadge,
   filterDemoEvents,
   groupEventsByRecency,
+  toActionPreviewFromReset,
+  toActionPreviewFromScenario,
 } from '../../lib/demo.utils';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
-import { DemoScenarioConfirmComponent } from './demo-scenario-confirm.component';
+import { DemoActionConfirmComponent } from './demo-action-confirm.component';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
-  imports: [DemoScenarioConfirmComponent],
+  imports: [DemoActionConfirmComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
@@ -76,8 +78,9 @@ export class DemoCenterPanelComponent implements OnChanges {
   appliedScenarioId: string | null = null;
   eventCourierFilter: string | null = null;
   confirmOpen = false;
-  confirmPreview: ScenarioPreview | null = null;
-  confirmScenarioTitle = '';
+  confirmPreview: DemoActionPreview | null = null;
+  confirmAction: DemoActionKind | null = null;
+  confirmScenarioId: string | null = null;
   applying = false;
 
   constructor(private readonly provider: HttpDispatchProvider) {}
@@ -115,6 +118,10 @@ export class DemoCenterPanelComponent implements OnChanges {
       !!this.appliedScenarioId &&
       this.selectedScenarioId !== this.appliedScenarioId
     );
+  }
+
+  get footerBusy(): boolean {
+    return this.applying;
   }
 
   get nextScriptLabel(): string {
@@ -181,8 +188,24 @@ export class DemoCenterPanelComponent implements OnChanges {
           scenario.id === 'random_stale' ? undefined : this.focusCourierId || undefined,
         ),
       );
-      this.confirmPreview = preview;
-      this.confirmScenarioTitle = scenario.title;
+      this.confirmAction = 'apply_scenario';
+      this.confirmScenarioId = scenario.id;
+      this.confirmPreview = toActionPreviewFromScenario(preview, scenario.title);
+      this.confirmOpen = true;
+    } finally {
+      this.applying = false;
+    }
+  }
+
+  async onResetDemo(): Promise<void> {
+    if (!this.controlsEnabled || this.applying) return;
+
+    try {
+      this.applying = true;
+      const preview = await firstValueFrom(this.provider.demoPreviewReset());
+      this.confirmAction = 'reset';
+      this.confirmScenarioId = null;
+      this.confirmPreview = toActionPreviewFromReset(preview);
       this.confirmOpen = true;
     } finally {
       this.applying = false;
@@ -190,30 +213,38 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   onConfirmCancelled(): void {
-    this.confirmOpen = false;
-    this.confirmPreview = null;
+    if (this.applying) return;
+    this.closeConfirm();
   }
 
   async onConfirmAccepted(): Promise<void> {
-    if (!this.confirmPreview?.can_apply || !this.selectedScenarioId || this.applying) return;
+    if (!this.confirmPreview?.can_apply || !this.confirmAction || this.applying) return;
+
     try {
       this.applying = true;
-      const result = await firstValueFrom(
-        this.provider.demoApplyScenario(this.selectedScenarioId, {
-          courierId:
-            this.selectedScenarioId === 'random_stale'
-              ? undefined
-              : this.focusCourierId || undefined,
-          confirmReset: this.confirmPreview.requires_reset,
-        }),
-      );
-      this.appliedScenarioId = this.selectedScenarioId;
-      this.confirmOpen = false;
-      this.confirmPreview = null;
-      if (result.reset_performed) {
+      if (this.confirmAction === 'reset') {
+        await firstValueFrom(this.provider.demoReset());
         this.refreshed.emit();
+        const defaultScenarioId = this.scenarios[0]?.id ?? null;
+        this.appliedScenarioId = defaultScenarioId;
+        this.selectedScenarioId = defaultScenarioId;
+      } else if (this.confirmAction === 'apply_scenario' && this.confirmScenarioId) {
+        const result = await firstValueFrom(
+          this.provider.demoApplyScenario(this.confirmScenarioId, {
+            courierId:
+              this.confirmScenarioId === 'random_stale'
+                ? undefined
+                : this.focusCourierId || undefined,
+            confirmReset: this.confirmPreview.requires_reset ?? false,
+          }),
+        );
+        this.appliedScenarioId = this.confirmScenarioId;
+        if (result.reset_performed) {
+          this.refreshed.emit();
+        }
+        this.applyScenario.emit(result);
       }
-      this.applyScenario.emit(result);
+      this.closeConfirm();
     } finally {
       this.applying = false;
     }
@@ -221,12 +252,6 @@ export class DemoCenterPanelComponent implements OnChanges {
 
   toggleMapPref(key: 'showBoundsOverlay' | 'showRoutePolyline', value: boolean): void {
     this.mapPrefsChange.emit({ ...this.mapPrefs, [key]: value });
-  }
-
-  async onResetDemo(): Promise<void> {
-    if (!this.controlsEnabled) return;
-    await firstValueFrom(this.provider.demoReset());
-    this.refreshed.emit();
   }
 
   async onTriggerStale(): Promise<void> {
@@ -237,6 +262,13 @@ export class DemoCenterPanelComponent implements OnChanges {
   async onTriggerReconnect(): Promise<void> {
     if (!this.controlsEnabled || !this.focusCourierId) return;
     await firstValueFrom(this.provider.demoTrigger(this.focusCourierId, 'reconnect'));
+  }
+
+  private closeConfirm(): void {
+    this.confirmOpen = false;
+    this.confirmPreview = null;
+    this.confirmAction = null;
+    this.confirmScenarioId = null;
   }
 
   private syncHighlightCourier(): void {

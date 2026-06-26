@@ -1,0 +1,53 @@
+<div class="action-confirm" role="dialog" aria-modal="true" aria-labelledby="action-confirm-title">
+  <div class="action-confirm__backdrop" (click)="!applying && cancelled.emit()"></div>
+  <div class="action-confirm__panel">
+    <header class="action-confirm__header">
+      <h3 id="action-confirm-title">{{ preview.title }}</h3>
+      @if (preview.subtitle) {
+        <p class="action-confirm__subtitle">{{ preview.subtitle }}</p>
+      }
+    </header>
+
+    <div class="action-confirm__body">
+      @if (applying) {
+        <p class="action-confirm__loading">{{ preview.applying_label }}</p>
+      } @else if (!preview.can_apply && preview.block_reason) {
+        <p class="action-confirm__block">{{ preview.block_reason }}</p>
+      } @else {
+        <ul class="action-confirm__list">
+          @for (line of preview.summary_lines; track line) {
+            <li>{{ line }}</li>
+          }
+        </ul>
+        @if (preview.requires_reset) {
+          <p class="action-confirm__warning">A simulação será reiniciada ao confirmar.</p>
+        }
+        @if (preview.kind === 'reset') {
+          <p class="action-confirm__warning action-confirm__warning--destructive">
+            Esta ação não pode ser desfeita — o progresso atual da simulação será perdido.
+          </p>
+        }
+      }
+    </div>
+
+    <footer class="action-confirm__footer">
+      <button
+        type="button"
+        class="action-confirm__btn action-confirm__btn--ghost"
+        [disabled]="applying"
+        (click)="cancelled.emit()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="action-confirm__btn action-confirm__btn--primary"
+        [class.action-confirm__btn--destructive]="preview.severity === 'destructive'"
+        [disabled]="!preview.can_apply || applying"
+        (click)="confirmed.emit()"
+      >
+        {{ confirmButtonLabel }}
+      </button>
+    </footer>
+  </div>
+</div>
