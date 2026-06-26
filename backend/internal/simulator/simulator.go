@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	pickupArriveM   = 35
-	pickupDepartM   = 45
-	dropoffNearM    = 50
+	pickupArriveM  = 35
+	pickupDepartM  = 45
+	dropoffNearM   = 50
+	dropoffArriveM = 20
 )
 
 type EventEmitter func(eventType string, data interface{})
@@ -150,11 +151,15 @@ func (sim *Simulator) moveCouriers(now time.Time) {
 }
 
 func (sim *Simulator) advanceCourier(c *domain.Courier, now time.Time, bounds domain.MapBounds) {
+	if delivery, ok := sim.store.GetDelivery(c.DeliveryID); ok && delivery.Status == domain.StatusDelivered {
+		return
+	}
 	if len(c.Route) < 2 {
 		return
 	}
 	idx := c.RouteIndex
 	if idx >= len(c.Route)-1 {
+		sim.tryCompleteDelivery(c.ID, c.Position.Lat, c.Position.Lng, now, true)
 		return
 	}
 	a := c.Route[idx]
@@ -193,6 +198,10 @@ func (sim *Simulator) advanceCourier(c *domain.Courier, now time.Time, bounds do
 	})
 
 	sim.checkMilestones(c.ID, lat, lng, now)
+
+	if newIdx >= len(c.Route)-1 {
+		sim.tryCompleteDelivery(c.ID, lat, lng, now, true)
+	}
 
 	if !geo.WithinBounds(lat, lng, bounds.MinLat, bounds.MaxLat, bounds.MinLng, bounds.MaxLng) {
 		return
@@ -247,10 +256,57 @@ func (sim *Simulator) checkMilestones(courierID string, lat, lng float64, now ti
 	}
 
 	if delivery.Status == domain.StatusInTransit || sim.store.HasMilestone(courierID, "picked_up") {
+		if delivery.Status == domain.StatusDelivered {
+			return
+		}
 		if distDropoff <= dropoffNearM && !sim.store.HasMilestone(courierID, "approaching_dropoff") {
 			msg := "Próximo ao destino — " + delivery.Street
 			sim.emitMilestone(courierID, delivery.ID, "approaching_dropoff", msg, domain.StatusInTransit, now)
 		}
+		if delivery.Status != domain.StatusDelivered {
+			sim.tryCompleteDelivery(courierID, lat, lng, now, false)
+		}
+	}
+}
+
+func (sim *Simulator) tryCompleteDelivery(courierID string, lat, lng float64, now time.Time, atRouteEnd bool) {
+	if sim.store.HasMilestone(courierID, "delivered") {
+		return
+	}
+	courier, ok := sim.store.GetCourier(courierID)
+	if !ok {
+		return
+	}
+	delivery, ok := sim.store.GetDelivery(courier.DeliveryID)
+	if !ok || delivery.Status == domain.StatusDelivered {
+		return
+	}
+
+	distDropoff := geo.HaversineM(lat, lng, delivery.Dropoff.Lat, delivery.Dropoff.Lng)
+	if !atRouteEnd && distDropoff > dropoffArriveM {
+		return
+	}
+
+	if !sim.store.HasMilestone(courierID, "approaching_dropoff") {
+		msg := "Próximo ao destino — " + delivery.Street
+		sim.emitMilestone(courierID, delivery.ID, "approaching_dropoff", msg, domain.StatusInTransit, now)
+	}
+
+	msg := "Entrega concluída — " + delivery.Street
+	sim.store.UpdateDeliveryStatus(delivery.ID, domain.StatusDelivered)
+	sim.emitMilestone(courierID, delivery.ID, "delivered", msg, domain.StatusDelivered, now)
+
+	sim.store.UpdateCourier(courierID, func(cur *domain.Courier) {
+		cur.ETASeconds = 0
+	})
+	sim.store.UpdateDeliveryETA(delivery.ID, 0)
+
+	if sim.emit != nil {
+		sim.emit("eta_update", domain.ETAUpdate{
+			DeliveryID: delivery.ID,
+			CourierID:  courierID,
+			ETASeconds: 0,
+		})
 	}
 }
 

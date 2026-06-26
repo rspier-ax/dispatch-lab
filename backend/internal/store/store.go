@@ -61,6 +61,7 @@ func (s *Store) initFromScenario() {
 				Timestamp: s.startedAt,
 			},
 		}
+		s.milestones[def.ID] = make(map[string]bool)
 	}
 	for _, d := range s.scenario.Deliveries {
 		name := courierNames[d.CourierID]
@@ -79,6 +80,21 @@ func (s *Store) initFromScenario() {
 			del.ETASeconds = c.ETASeconds
 		}
 		s.deliveries[d.ID] = del
+	}
+	for _, def := range s.scenario.Couriers {
+		del, ok := s.deliveries[def.DeliveryID]
+		if !ok || del.Status != domain.StatusInTransit {
+			continue
+		}
+		msg := "Pedido já coletado em " + del.Restaurant + " — em rota para " + del.Street
+		s.timelines[def.ID] = append(s.timelines[def.ID], domain.TimelineEvent{
+			ID:        s.nextEventID(),
+			CourierID: def.ID,
+			Type:      "picked_up",
+			Message:   msg,
+			Timestamp: s.startedAt,
+		})
+		s.milestones[def.ID]["picked_up"] = true
 	}
 }
 
@@ -164,13 +180,13 @@ func (s *Store) Snapshot() domain.ScenarioSnapshot {
 	return domain.ScenarioSnapshot{
 		MapBounds:  s.scenario.MapBounds,
 		Landmarks:  s.scenario.Landmarks,
-		Couriers:   s.copyCouriers(),
-		Deliveries: s.activeDeliveries(),
+		Couriers:   s.copyCouriersLocked(),
+		Deliveries: s.allDeliveriesLocked(),
 		Tick:       s.tick,
 	}
 }
 
-func (s *Store) copyCouriers() []domain.Courier {
+func (s *Store) copyCouriersLocked() []domain.Courier {
 	out := make([]domain.Courier, 0, len(s.couriers))
 	for _, c := range s.couriers {
 		cp := *c
@@ -179,7 +195,16 @@ func (s *Store) copyCouriers() []domain.Courier {
 	return out
 }
 
-func (s *Store) activeDeliveries() []domain.Delivery {
+func (s *Store) allDeliveriesLocked() []domain.Delivery {
+	out := make([]domain.Delivery, 0, len(s.deliveries))
+	for _, d := range s.deliveries {
+		cp := *d
+		out = append(out, cp)
+	}
+	return out
+}
+
+func (s *Store) activeDeliveriesLocked() []domain.Delivery {
 	out := make([]domain.Delivery, 0)
 	for _, d := range s.deliveries {
 		if d.Status != domain.StatusDelivered {
@@ -190,16 +215,41 @@ func (s *Store) activeDeliveries() []domain.Delivery {
 	return out
 }
 
-func (s *Store) Couriers() []domain.Courier {
+func (s *Store) completedDeliveriesLocked() []domain.Delivery {
+	out := make([]domain.Delivery, 0)
+	for _, d := range s.deliveries {
+		if d.Status == domain.StatusDelivered {
+			cp := *d
+			out = append(out, cp)
+		}
+	}
+	return out
+}
+
+func (s *Store) copyCouriers() []domain.Courier {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.copyCouriers()
+	return s.copyCouriersLocked()
+}
+
+func (s *Store) activeDeliveries() []domain.Delivery {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.activeDeliveriesLocked()
+}
+
+func (s *Store) CompletedDeliveries() []domain.Delivery {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.completedDeliveriesLocked()
 }
 
 func (s *Store) Deliveries() []domain.Delivery {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	return s.activeDeliveries()
+}
+
+func (s *Store) Couriers() []domain.Courier {
+	return s.copyCouriers()
 }
 
 func (s *Store) CourierDetail(id string) (domain.CourierDetail, bool) {

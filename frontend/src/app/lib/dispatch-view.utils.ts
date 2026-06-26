@@ -71,8 +71,92 @@ export function formatEta(seconds: number): string {
 }
 
 export function formatEtaLabel(seconds: number): string {
-  if (seconds <= 0) return 'ETA calculando…';
+  if (seconds <= 0) return 'ETA indisponível';
   return `ETA ${formatEta(seconds)}`;
+}
+
+export function formatDetailEta(seconds: number, deliveryStatus?: string): string {
+  if (deliveryStatus === 'delivered') return 'Entregue';
+  return formatEta(seconds);
+}
+
+export interface DeliveryMetaBadge {
+  label: string;
+  tone: 'queued-wait' | 'delivered' | 'picking-up' | 'in-transit' | 'eta-unavailable';
+}
+
+export function deliveryMetaBadge(
+  delivery: { status: string; eta_seconds: number },
+  queued: boolean,
+): DeliveryMetaBadge {
+  if (queued) {
+    return { label: 'Aguardando rota atual', tone: 'queued-wait' };
+  }
+  if (delivery.status === 'delivered') {
+    return { label: 'Entregue', tone: 'delivered' };
+  }
+  if (delivery.status === 'picking_up') {
+    if (delivery.eta_seconds > 0) {
+      return {
+        label: `Coletando · ETA ${formatEta(delivery.eta_seconds)}`,
+        tone: 'picking-up',
+      };
+    }
+    return { label: 'Coletando · ETA indisponível', tone: 'eta-unavailable' };
+  }
+  if (delivery.eta_seconds > 0) {
+    return {
+      label: `Em rota · ETA ${formatEta(delivery.eta_seconds)}`,
+      tone: 'in-transit',
+    };
+  }
+  return { label: 'Em rota · ETA indisponível', tone: 'eta-unavailable' };
+}
+
+export type JourneyStepState = 'pending' | 'current' | 'done';
+
+export interface JourneyStep {
+  id: 'dispatch' | 'pickup' | 'delivery' | 'complete';
+  label: string;
+  state: JourneyStepState;
+}
+
+export function journeySteps(
+  deliveryStatus: string | undefined,
+  timeline: TimelineEvent[],
+): JourneyStep[] {
+  const types = new Set(timeline.map((e) => e.type));
+  const status = deliveryStatus ?? (types.has('delivered') ? 'delivered' : 'in_transit');
+  const pickupDone = types.has('picked_up') || status === 'in_transit' || status === 'delivered';
+  const deliveryDone = types.has('approaching_dropoff') || status === 'delivered';
+  const completeDone = status === 'delivered';
+
+  const steps: JourneyStep[] = [
+    { id: 'dispatch', label: 'Despacho', state: 'done' },
+    { id: 'pickup', label: 'Coleta', state: 'pending' },
+    { id: 'delivery', label: 'Entrega', state: 'pending' },
+    { id: 'complete', label: 'Concluída', state: 'pending' },
+  ];
+
+  if (completeDone) {
+    return steps.map((s) => ({ ...s, state: 'done' }));
+  }
+
+  if (deliveryDone) {
+    steps[1].state = 'done';
+    steps[2].state = 'done';
+    steps[3].state = 'current';
+    return steps;
+  }
+
+  if (pickupDone) {
+    steps[1].state = 'done';
+    steps[2].state = 'current';
+    return steps;
+  }
+
+  steps[1].state = 'current';
+  return steps;
 }
 
 export function isQueuedDelivery(
@@ -186,6 +270,12 @@ export function timelineDisplay(event: TimelineEvent): TimelineDisplay {
     case 'approaching_dropoff':
       return {
         title: 'Próximo ao destino',
+        description: event.message,
+        tone: 'operational',
+      };
+    case 'delivered':
+      return {
+        title: 'Entrega concluída',
         description: event.message,
         tone: 'operational',
       };

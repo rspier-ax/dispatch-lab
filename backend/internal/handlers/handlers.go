@@ -53,8 +53,13 @@ func (a *API) handleCouriers(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"couriers": a.Store.Couriers()})
 }
 
-func (a *API) handleDeliveries(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{"deliveries": a.Store.Deliveries()})
+func (a *API) handleDeliveries(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Query().Get("status") {
+	case "delivered":
+		writeJSON(w, http.StatusOK, map[string]interface{}{"deliveries": a.Store.CompletedDeliveries()})
+	default:
+		writeJSON(w, http.StatusOK, map[string]interface{}{"deliveries": a.Store.Deliveries()})
+	}
 }
 
 func (a *API) handleCourierDetail(w http.ResponseWriter, r *http.Request) {

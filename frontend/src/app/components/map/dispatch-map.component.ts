@@ -198,8 +198,9 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
 
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(this.map);
 

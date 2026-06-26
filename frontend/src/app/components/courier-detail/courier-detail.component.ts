@@ -2,9 +2,10 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output } 
 import { CourierDetail } from '../../services/dispatch/types';
 import {
   formatDistanceM,
-  formatEta,
+  formatDetailEta,
   formatSignalAge,
   formatTime,
+  journeySteps,
   remainingDistanceM,
   staleAgeSeconds,
   timelineDisplay,
@@ -39,9 +40,17 @@ export class CourierDetailComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   trackingLabel = trackingStateLabel;
-  formatEta = formatEta;
+  formatDetailEta = formatDetailEta;
   formatTime = formatTime;
   timelineDisplay = timelineDisplay;
+  journeySteps = journeySteps;
+
+  deliveryStatus(): string | undefined {
+    if (!this.detail) return undefined;
+    if (this.detail.delivery?.status) return this.detail.delivery.status;
+    if (this.detail.timeline.some((e) => e.type === 'delivered')) return 'delivered';
+    return undefined;
+  }
 
   private refreshDerived(): void {
     if (!this.detail) {

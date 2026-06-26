@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DispatchProvider } from './dispatch-provider.interface';
+import { DispatchProvider, DeliveryScope } from './dispatch-provider.interface';
 import { CourierDetail, Delivery, DemoInfo, ScenarioSnapshot } from './types';
 
 @Injectable({ providedIn: 'root' })
@@ -17,9 +17,10 @@ export class HttpDispatchProvider extends DispatchProvider {
     return this.http.get<ScenarioSnapshot>(`${this.base}/api/scenario`);
   }
 
-  getDeliveries(): Observable<Delivery[]> {
+  getDeliveries(scope: DeliveryScope = 'active'): Observable<Delivery[]> {
+    const query = scope === 'delivered' ? '?status=delivered' : '';
     return this.http
-      .get<{ deliveries: Delivery[] }>(`${this.base}/api/deliveries`)
+      .get<{ deliveries: Delivery[] }>(`${this.base}/api/deliveries${query}`)
       .pipe(map((r) => r.deliveries));
   }
 

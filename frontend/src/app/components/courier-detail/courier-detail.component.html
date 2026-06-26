@@ -42,7 +42,7 @@
       </div>
       <div>
         <dt>ETA estimado</dt>
-        <dd>{{ formatEta(detail.courier.eta_seconds) }}</dd>
+        <dd>{{ formatDetailEta(detail.courier.eta_seconds, deliveryStatus()) }}</dd>
       </div>
       @if (distanceLabel) {
         <div>
@@ -78,6 +78,19 @@
 
     <section class="detail__section" aria-labelledby="timeline-heading">
       <h3 id="timeline-heading">Linha do tempo</h3>
+      <p class="detail__journey-hint">Acompanhe o percurso: entregador → restaurante → cliente</p>
+      <ol class="journey-stepper" aria-label="Etapas da entrega">
+        @for (step of journeySteps(deliveryStatus(), detail.timeline); track step.id) {
+          <li
+            class="journey-stepper__step"
+            [class.journey-stepper__step--done]="step.state === 'done'"
+            [class.journey-stepper__step--current]="step.state === 'current'"
+          >
+            <span class="journey-stepper__dot" aria-hidden="true"></span>
+            <span class="journey-stepper__label">{{ step.label }}</span>
+          </li>
+        }
+      </ol>
       @if (detail.timeline.length === 0) {
         <p class="detail__empty">Sem eventos registrados.</p>
       } @else {

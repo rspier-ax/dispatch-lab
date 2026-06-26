@@ -1,8 +1,10 @@
 import {
   courierMetrics,
+  deliveryMetaBadge,
   formatEta,
   formatEtaLabel,
   formatSignalAge,
+  journeySteps,
   remainingDistanceM,
   staleAgeSeconds,
   trackingStateLabel,
@@ -53,7 +55,48 @@ describe('dispatch-view.utils', () => {
   it('formats eta', () => {
     expect(formatEta(180)).toBe('3 min');
     expect(formatEta(0)).toBe('—');
-    expect(formatEtaLabel(0)).toBe('ETA calculando…');
+    expect(formatEtaLabel(0)).toBe('ETA indisponível');
+    expect(formatEtaLabel(120)).toBe('ETA 2 min');
+  });
+
+  it('builds delivery meta badge for pills', () => {
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 120 }, false)).toEqual({
+      label: 'Em rota · ETA 2 min',
+      tone: 'in-transit',
+    });
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 0 }, false)).toEqual({
+      label: 'Em rota · ETA indisponível',
+      tone: 'eta-unavailable',
+    });
+    expect(deliveryMetaBadge({ status: 'in_transit', eta_seconds: 120 }, true)).toEqual({
+      label: 'Aguardando rota atual',
+      tone: 'queued-wait',
+    });
+    expect(deliveryMetaBadge({ status: 'delivered', eta_seconds: 0 }, false)).toEqual({
+      label: 'Entregue',
+      tone: 'delivered',
+    });
+  });
+
+  it('builds journey steps', () => {
+    const base = { id: '1', courier_id: 'POA-01', timestamp: new Date().toISOString() };
+    const steps = journeySteps('in_transit', [
+      { ...base, type: 'started', message: 'start' },
+      { ...base, type: 'picked_up', message: 'pickup' },
+    ]);
+    expect(steps.find((s) => s.id === 'pickup')?.state).toBe('done');
+    expect(steps.find((s) => s.id === 'delivery')?.state).toBe('current');
+  });
+
+  it('maps delivered timeline display', () => {
+    const d = timelineDisplay({
+      id: '1',
+      courier_id: 'POA-06',
+      type: 'delivered',
+      message: 'Entrega concluída — Usina do Gasômetro',
+      timestamp: new Date().toISOString(),
+    });
+    expect(d.title).toBe('Entrega concluída');
   });
 
   it('computes remaining distance', () => {

@@ -16,7 +16,9 @@ test.describe('DispatchLab operator flow', () => {
       timeout: 30_000,
     });
 
-    await expect(page.getByRole('heading', { name: /Entregas ativas/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Entregas$/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Ativas/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Concluídas/i })).toBeVisible();
     await expect(page.getByText('Atualizações em tempo real ativas')).toHaveCount(0);
     await expect(page.locator('app-dispatch-footer')).toHaveCount(0);
     await expect(page.getByText('Demo v1.0.0')).toBeVisible();
@@ -38,6 +40,11 @@ test.describe('DispatchLab operator flow', () => {
 
     await expect(page.getByRole('heading', { level: 2, name: 'POA-07' })).toBeVisible();
     await expect(page.locator('.detail').getByText('Gabriela Lima', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Acompanhe o percurso: entregador → restaurante → cliente'),
+    ).toBeVisible();
+    await expect(page.locator('.journey-stepper__label', { hasText: 'Despacho' })).toBeVisible();
+    await expect(page.getByText('ETA calculando')).toHaveCount(0);
 
     const triggerRes = await request.post('http://localhost:8080/api/demo/trigger', {
       data: { courier_id: 'POA-07', action: 'go_stale' },
