@@ -11,7 +11,13 @@
     <button type="button" class="map-btn" aria-label="Ajustar operação ao bounds do cenário" (click)="fitOperationArea()">
       Ajustar operação
     </button>
-    <button type="button" class="map-btn map-btn--primary" (click)="openDemoCenter.emit()">
+    <button
+      type="button"
+      class="map-btn map-btn--primary"
+      [class.map-btn--active]="demoCenterOpen"
+      [attr.aria-pressed]="demoCenterOpen"
+      (click)="toggleDemoCenter.emit()"
+    >
       Central da demo
     </button>
   </div>
@@ -35,4 +41,29 @@
     <span class="map-legend__item"><span class="map-legend__dot map-legend__dot--stale"></span> Sinal atrasado</span>
     <span class="map-legend__item"><span class="map-legend__dot map-legend__dot--offline"></span> Sem sinal</span>
   </div>
+
+  @if (bounds) {
+    <div class="map-overlay map-overlay--bottom-info" aria-label="Metadados do cenário">
+      <span>Centro Histórico · POA Centro</span>
+      @if (bboxLabel) {
+        <span class="mono">{{ bboxLabel }}</span>
+      }
+      <span class="map-meta">Demo v1.0.0</span>
+    </div>
+  }
+
+  <app-demo-center-panel
+    [open]="demoCenterOpen"
+    [demoInfo]="demoInfo"
+    [tick]="demoTick"
+    [events]="demoEvents"
+    [couriers]="couriers"
+    [selectedCourierId]="selectedId"
+    [mapPrefs]="demoMapPrefs"
+    (closed)="demoClosed.emit()"
+    (focusCourier)="demoFocusCourier.emit($event)"
+    (applyScenario)="demoApplyScenario.emit($event)"
+    (mapPrefsChange)="demoMapPrefsChange.emit($event)"
+    (refreshed)="demoRefreshed.emit()"
+  />
 </div>

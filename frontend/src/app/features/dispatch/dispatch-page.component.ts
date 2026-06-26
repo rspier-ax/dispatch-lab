@@ -6,8 +6,7 @@ import { DispatchMapComponent } from '../../components/map/dispatch-map.componen
 import { DeliveryListComponent } from '../../components/delivery-list/delivery-list.component';
 import { CourierDetailComponent } from '../../components/courier-detail/courier-detail.component';
 import { DispatchHeaderComponent } from '../../components/header/dispatch-header.component';
-import { DispatchFooterComponent } from '../../components/footer/dispatch-footer.component';
-import { DemoCenterModalComponent } from '../../components/demo-center/demo-center-modal.component';
+import { DispatchBootComponent } from '../../components/boot/dispatch-boot.component';
 import { DispatchStreamService } from '../../services/dispatch/dispatch-stream.service';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
 import { Courier, CourierDetail, Delivery, DeliveryEventPayload, DemoInfo, DemoScenario, Landmark } from '../../services/dispatch/types';
@@ -24,8 +23,7 @@ import { DEFAULT_DEMO_MAP_PREFS, DemoMapPrefs, FALLBACK_DEMO_INFO } from '../../
     DeliveryListComponent,
     CourierDetailComponent,
     DispatchHeaderComponent,
-    DispatchFooterComponent,
-    DemoCenterModalComponent,
+    DispatchBootComponent,
   ],
   templateUrl: './dispatch-page.component.html',
   styleUrl: './dispatch-page.component.scss',
@@ -135,6 +133,10 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
       this.dispatchMap?.fitOperationArea();
     }
     this.demoCenterOpen = false;
+  }
+
+  onToggleDemoCenter(): void {
+    this.demoCenterOpen = !this.demoCenterOpen;
   }
 
   onOpenDemoCenter(): void {

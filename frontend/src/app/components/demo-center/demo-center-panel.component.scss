@@ -1,0 +1,17 @@
+:host {
+  position: absolute;
+  top: var(--demo-panel-top, 5.5rem);
+  bottom: var(--map-legend-reserve, 6rem);
+  left: 0.75rem;
+  z-index: 600;
+  width: min(480px, calc(100% - 1.5rem));
+  max-width: calc(100% - 1.5rem);
+  height: auto;
+  pointer-events: auto;
+}
+
+@media (max-width: 520px) {
+  :host {
+    width: calc(100% - 1.5rem);
+  }
+}

@@ -1,12 +1,10 @@
 import {
   Component,
-  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
   Output,
   SimpleChanges,
-  ViewChild,
 } from '@angular/core';
 import { Courier, DeliveryEventPayload, DemoInfo, DemoScenario } from '../../services/dispatch/types';
 import { timelineDisplay, formatTime } from '../../lib/dispatch-view.utils';
@@ -17,23 +15,25 @@ import {
   SEEK_TOOLTIP,
 } from '../../lib/demo.constants';
 import {
+  DemoPanelTab,
   demoNextScriptLabel,
   demoProgressPercent,
   demoScenarios,
   demoSimulationTimeLabel,
+  eventTypeBadge,
+  filterDemoEvents,
+  groupEventsByRecency,
 } from '../../lib/demo.utils';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
-  selector: 'app-demo-center-modal',
+  selector: 'app-demo-center-panel',
   standalone: true,
-  templateUrl: './demo-center-modal.component.html',
-  styleUrl: './demo-center-modal.component.scss',
+  templateUrl: './demo-center-panel.component.html',
+  styleUrl: './demo-center-panel.component.scss',
 })
-export class DemoCenterModalComponent implements OnChanges {
-  @ViewChild('dialogEl') dialogEl?: ElementRef<HTMLDialogElement>;
-
+export class DemoCenterPanelComponent implements OnChanges {
   @Input() open = false;
   @Input({ required: true }) demoInfo: DemoInfo | null = null;
   @Input() tick = 0;
@@ -55,20 +55,23 @@ export class DemoCenterModalComponent implements OnChanges {
   readonly comingSoon = COMING_SOON_TOOLTIP;
   readonly demoControlsHint = DEMO_CONTROLS_TOOLTIP;
   readonly seekHint = SEEK_TOOLTIP;
+  readonly tabs: { id: DemoPanelTab; label: string }[] = [
+    { id: 'control', label: 'Controle' },
+    { id: 'scenarios', label: 'Cenários' },
+    { id: 'events', label: 'Eventos' },
+  ];
 
+  activeTab: DemoPanelTab = 'control';
   focusCourierId = '';
   selectedScenarioId: string | null = null;
-  showAllEvents = false;
   highlightEnabled = true;
+  eventCourierFilter: string | null = null;
 
   constructor(private readonly provider: HttpDispatchProvider) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['open']) {
-      queueMicrotask(() => this.syncDialogOpen());
-      if (this.open && !this.selectedScenarioId && this.scenarios.length) {
-        this.selectedScenarioId = this.scenarios[0].id;
-      }
+    if (changes['open']?.currentValue && !this.selectedScenarioId && this.scenarios.length) {
+      this.selectedScenarioId = this.scenarios[0].id;
     }
     if (changes['mapPrefs']) {
       this.highlightEnabled = !!this.mapPrefs.highlightCourierId;
@@ -107,9 +110,12 @@ export class DemoCenterModalComponent implements OnChanges {
     return this.focusCourierId ? `Destacar ${this.focusCourierId}` : 'Destacar entregador';
   }
 
-  displayedEvents(): DeliveryEventPayload[] {
-    const list = [...this.events].reverse();
-    return this.showAllEvents ? list : list.slice(0, 5);
+  filteredEvents(): DeliveryEventPayload[] {
+    return filterDemoEvents(this.events, this.eventCourierFilter);
+  }
+
+  eventGroups(): { label: string; items: DeliveryEventPayload[] }[] {
+    return groupEventsByRecency(this.filteredEvents());
   }
 
   eventTitle(ev: DeliveryEventPayload): string {
@@ -122,21 +128,14 @@ export class DemoCenterModalComponent implements OnChanges {
     }).title;
   }
 
+  eventBadge = eventTypeBadge;
   formatTime = formatTime;
 
-  onBackdropClick(event: MouseEvent): void {
-    if (event.target === this.dialogEl?.nativeElement) {
-      this.onClose();
-    }
-  }
-
-  onDialogCancel(event: Event): void {
-    event.preventDefault();
-    this.onClose();
+  setTab(tab: DemoPanelTab): void {
+    this.activeTab = tab;
   }
 
   onClose(): void {
-    this.dialogEl?.nativeElement.close();
     this.closed.emit();
   }
 
@@ -180,16 +179,6 @@ export class DemoCenterModalComponent implements OnChanges {
   async onTriggerReconnect(): Promise<void> {
     if (!this.controlsEnabled || !this.focusCourierId) return;
     await firstValueFrom(this.provider.demoTrigger(this.focusCourierId, 'reconnect'));
-  }
-
-  private syncDialogOpen(): void {
-    const dialog = this.dialogEl?.nativeElement;
-    if (!dialog) return;
-    if (this.open && !dialog.open) {
-      dialog.showModal();
-    } else if (!this.open && dialog.open) {
-      dialog.close();
-    }
   }
 
   private syncHighlightCourier(): void {

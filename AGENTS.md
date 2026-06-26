@@ -48,6 +48,7 @@ e2e/                  Playwright specs
 - Tracking timeline is append-only in the UI (no edit/delete).
 - Read existing code before adding services or components.
 - Contract or schema changes need tests; architectural shifts need an ADR in `docs/decisions/`.
+- **Documentation:** repository docs (`README.md`, `docs/`, this file) are **English only**. Operator UI may stay pt-BR until i18n lands — see [docs/guides/i18n-roadmap.md](./docs/guides/i18n-roadmap.md).
 
 ## Validation
 
@@ -68,6 +69,8 @@ Playwright: `npx playwright install chromium` on first run.
 
 | Document | Topic |
 |----------|--------|
+| [docs/guides/demo-guide.md](./docs/guides/demo-guide.md) | Demo walkthrough and dev controls |
+| [docs/guides/i18n-roadmap.md](./docs/guides/i18n-roadmap.md) | Docs language vs future UI locales |
 | [docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md) | Boundaries, streaming, errors |
 | [docs/frontend-standards.md](./docs/frontend-standards.md) | Components, a11y, testing |
 | [docs/WORKFLOW.md](./docs/WORKFLOW.md) | Branches and PRs |

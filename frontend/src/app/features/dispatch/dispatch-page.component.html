@@ -1,72 +1,61 @@
-<div class="dispatch-shell">
-  @if (facade.connection$ | async; as conn) {
-    <app-dispatch-header [metrics]="metrics" [connectionState]="conn" />
-
-    @if (conn === 'disconnected') {
-      <div class="dispatch-banner" role="alert" aria-live="assertive">
-        Atualizações em tempo real interrompidas. Os dados exibidos podem estar desatualizados.
-      </div>
-    }
-
-    @if (facade.loading()) {
-      <div class="dispatch-loading" role="status" aria-label="Carregando cenário">
-        <div class="dispatch-loading__skeleton dispatch-loading__skeleton--list"></div>
-        <div class="dispatch-loading__skeleton dispatch-loading__skeleton--map"></div>
-        <div class="dispatch-loading__skeleton dispatch-loading__skeleton--detail"></div>
-      </div>
-    } @else if (facade.error()) {
-      <div class="dispatch-error" role="alert">
-        <p>{{ facade.error() }}</p>
-        <button type="button" (click)="facade.retry()">Tentar novamente</button>
-      </div>
-    } @else {
-      <main class="dispatch-main" id="main-content">
-        <app-delivery-list
-          [deliveries]="deliveries"
-          [couriers]="couriers"
-          [selectedCourierId]="facade.selectedCourierId()"
-          [filter]="mapFilter"
-          (selectCourier)="onSelect($event)"
-          (filterChange)="onFilterChange($event)"
-        />
-        <app-dispatch-map
-          [bounds]="facade.mapBounds()"
-          [couriers]="couriers"
-          [landmarks]="landmarks"
-          [selectedId]="facade.selectedCourierId()"
-          [filter]="mapFilter"
-          [showBoundsOverlay]="demoMapPrefs.showBoundsOverlay"
-          [showRoutePolyline]="demoMapPrefs.showRoutePolyline"
-          [highlightCourierId]="demoMapPrefs.highlightCourierId"
-          (filterChange)="onFilterChange($event)"
-          (selectCourier)="onSelect($event)"
-          (openDemoCenter)="onOpenDemoCenter()"
-        />
-        <div class="dispatch-detail-column">
-          <app-courier-detail
-            [detail]="mergedDetail"
-            [reconnectNotice]="reconnectNotice"
-            (closed)="onCloseDetail()"
-          />
-        </div>
-      </main>
-
-      <app-demo-center-modal
-        [open]="demoCenterOpen"
-        [demoInfo]="demoInfo"
-        [tick]="simTick"
-        [events]="streamEvents"
-        [couriers]="couriers"
-        [selectedCourierId]="facade.selectedCourierId()"
-        [mapPrefs]="demoMapPrefs"
-        (closed)="onCloseDemoCenter()"
-        (focusCourier)="onDemoFocusCourier($event)"
-        (applyScenario)="onRunScenario($event)"
-        (mapPrefsChange)="onDemoMapPrefsChange($event)"
-        (refreshed)="onDemoRefreshed()"
-      />
-    }
-
-    <app-dispatch-footer [connectionState]="conn" [bounds]="facade.mapBounds()" />
-  }
-</div>
+@if (facade.loading()) {
+  <app-dispatch-boot />
+} @else if (facade.error()) {
+  <div class="dispatch-error" role="alert">
+    <p>{{ facade.error() }}</p>
+    <button type="button" (click)="facade.retry()">Tentar novamente</button>
+  </div>
+} @else {
+  @if (facade.connection$ | async; as conn) {
+    <div class="dispatch-shell">
+      <app-dispatch-header [metrics]="metrics" [connectionState]="conn" />
+
+      @if (conn === 'disconnected') {
+        <div class="dispatch-banner" role="alert" aria-live="assertive">
+          Atualizações em tempo real interrompidas. Os dados exibidos podem estar desatualizados.
+        </div>
+      }
+
+      <main class="dispatch-main" id="main-content">
+        <app-delivery-list
+          [deliveries]="deliveries"
+          [couriers]="couriers"
+          [selectedCourierId]="facade.selectedCourierId()"
+          [filter]="mapFilter"
+          (selectCourier)="onSelect($event)"
+          (filterChange)="onFilterChange($event)"
+        />
+        <app-dispatch-map
+          [bounds]="facade.mapBounds()"
+          [couriers]="couriers"
+          [landmarks]="landmarks"
+          [selectedId]="facade.selectedCourierId()"
+          [filter]="mapFilter"
+          [showBoundsOverlay]="demoMapPrefs.showBoundsOverlay"
+          [showRoutePolyline]="demoMapPrefs.showRoutePolyline"
+          [highlightCourierId]="demoMapPrefs.highlightCourierId"
+          [demoCenterOpen]="demoCenterOpen"
+          [demoInfo]="demoInfo"
+          [demoTick]="simTick"
+          [demoEvents]="streamEvents"
+          [demoMapPrefs]="demoMapPrefs"
+          (filterChange)="onFilterChange($event)"
+          (selectCourier)="onSelect($event)"
+          (toggleDemoCenter)="onToggleDemoCenter()"
+          (demoClosed)="onCloseDemoCenter()"
+          (demoFocusCourier)="onDemoFocusCourier($event)"
+          (demoApplyScenario)="onRunScenario($event)"
+          (demoMapPrefsChange)="onDemoMapPrefsChange($event)"
+          (demoRefreshed)="onDemoRefreshed()"
+        />
+        <div class="dispatch-detail-column">
+          <app-courier-detail
+            [detail]="mergedDetail"
+            [reconnectNotice]="reconnectNotice"
+            (closed)="onCloseDetail()"
+          />
+        </div>
+      </main>
+    </div>
+  }
+}

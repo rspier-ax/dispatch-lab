@@ -22,31 +22,13 @@ When courier GPS or connectivity drops, operators lose visibility — the map po
 
 Map overview → select delivery / courier → inspect route and timeline → observe `#POA-07` stale → reconnect.
 
-### Como testar a demo
+### How to try the demo
 
-1. Suba backend e frontend (dois terminais — ver [Run locally](#run-locally)).
-2. Abra http://localhost:4200 (viewport ≥ 768px).
-3. No mapa, clique em **Central da demo** para abrir o modal:
-   - **Tick atual**, barra de progresso e contagem até o script POA-07 (stale @ tick 45, reconnect @ 90).
-   - **Cenários guiados** — selecione um card e clique em **Aplicar cenário** (ex.: POA-07 seleciona DEL-007).
-   - **Eventos recentes** — feed ao vivo do stream SSE dentro do modal.
-   - **Visualização** — toggles de bbox, polyline e destaque no mapa (frontend).
-4. Selecione um entregador no mapa: a rota azul mostra o **trecho restante** (cinza tracejado = já percorrido).
-5. Entregas com badge **Na fila** compartilham entregador no cenário (20 entregas / 15 couriers) — o simulador anima só a entrega principal.
+1. Start backend and frontend (see [Run locally](#run-locally)).
+2. Open http://localhost:4200 (viewport ≥ 768px).
+3. Click **Central da demo** on the map to open the docked panel (tabs **Controle**, **Cenários**, **Eventos**).
 
-**Controles dev** (opcional): defina `DEMO_CONTROLS=true` no backend para habilitar reset, simulações rápidas (stale/reconnect) e **Resetar demo** no modal.
-
-Controles ainda **desabilitados** (roadmap — requer backend): Sem sinal, resetar rota por entregador, slider de seek, velocidade x2/x5, toggles de eventos automáticos.
-
-```bash
-# Windows (PowerShell)
-$env:DEMO_CONTROLS="true"; go run ./cmd/server
-
-# bash
-DEMO_CONTROLS=true go run ./cmd/server
-```
-
-E2E acelera ticks com `SIM_TICK_MS=200` — não use `DEMO_CONTROLS` no CI.
+Full walkthrough, dev controls, and E2E notes: [docs/guides/demo-guide.md](./docs/guides/demo-guide.md).
 
 ## Architecture
 
