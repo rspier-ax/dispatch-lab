@@ -208,7 +208,7 @@
       <button
         type="button"
         class="demo-center__reset"
-        [disabled]="!controlsEnabled"
+        [disabled]="!controlsEnabled || footerBusy"
         [title]="controlsEnabled ? 'Resetar cenário' : demoControlsHint"
         (click)="onResetDemo()"
       >
@@ -217,7 +217,7 @@
       <button
         type="button"
         class="demo-center__apply"
-        [disabled]="!hasPendingScenarioChange || applying"
+        [disabled]="!hasPendingScenarioChange || footerBusy"
         (click)="onApplyScenario()"
       >
         Aplicar cenário
@@ -225,9 +225,9 @@
     </footer>
 
     @if (confirmOpen && confirmPreview) {
-      <app-demo-scenario-confirm
+      <app-demo-action-confirm
         [preview]="confirmPreview"
-        [scenarioTitle]="confirmScenarioTitle"
+        [applying]="applying"
         (cancelled)="onConfirmCancelled()"
         (confirmed)="onConfirmAccepted()"
       />

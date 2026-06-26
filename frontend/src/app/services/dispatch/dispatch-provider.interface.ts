@@ -1,3 +1,4 @@
+import { ResetPreview } from '../../lib/demo-action.types';
 import { Observable } from 'rxjs';
 import { CourierDetail, Delivery, DemoInfo, ScenarioApplyResult, ScenarioPreview, ScenarioSnapshot } from './types';
 
@@ -19,4 +20,5 @@ export abstract class DispatchProvider {
     scenarioId: string,
     options?: { courierId?: string; confirmReset?: boolean },
   ): Observable<ScenarioApplyResult>;
+  abstract demoPreviewReset(): Observable<ResetPreview>;
 }

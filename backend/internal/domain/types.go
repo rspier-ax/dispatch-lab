@@ -184,6 +184,14 @@ type ScenarioPreview struct {
 	Scripts          []ScriptAction `json:"scripts,omitempty"`
 }
 
+// ActionPreview is the shared preview shape for demo actions (reset, etc.).
+type ActionPreview struct {
+	CanApply      bool     `json:"can_apply"`
+	BlockReason   string   `json:"block_reason,omitempty"`
+	RequiresReset bool     `json:"requires_reset"`
+	SummaryLines  []string `json:"summary_lines"`
+}
+
 type ScenarioApplyResult struct {
 	FocusedCourierID string         `json:"focused_courier_id,omitempty"`
 	DeliveryID       string         `json:"delivery_id,omitempty"`

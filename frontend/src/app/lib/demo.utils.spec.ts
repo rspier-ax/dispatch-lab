@@ -6,6 +6,8 @@ import {
   filterDemoEvents,
   eventTypeBadge,
   groupEventsByRecency,
+  toActionPreviewFromReset,
+  toActionPreviewFromScenario,
 } from './demo.utils';
 import { FALLBACK_DEMO_INFO } from './demo.constants';
 import { DeliveryEventPayload } from '../services/dispatch/types';
@@ -57,5 +59,31 @@ describe('demo.utils', () => {
       timestamp: `2026-01-01T10:0${i % 10}:00Z`,
     }));
     expect(groupEventsByRecency(events)).toHaveSize(2);
+  });
+
+  it('maps scenario preview to action preview', () => {
+    const action = toActionPreviewFromScenario(
+      {
+        can_apply: true,
+        requires_reset: true,
+        summary_lines: ['Focará POA-07.'],
+      },
+      'POA-07 — sinal atrasado',
+    );
+    expect(action.kind).toBe('apply_scenario');
+    expect(action.title).toBe('Aplicar cenário');
+    expect(action.severity).toBe('normal');
+    expect(action.requires_reset).toBe(true);
+  });
+
+  it('maps reset preview to destructive action preview', () => {
+    const action = toActionPreviewFromReset({
+      can_apply: true,
+      requires_reset: false,
+      summary_lines: ['Simulação volta ao tick 0 (agora: tick 42).'],
+    });
+    expect(action.kind).toBe('reset');
+    expect(action.severity).toBe('destructive');
+    expect(action.confirm_label).toBe('Confirmar reset');
   });
 });

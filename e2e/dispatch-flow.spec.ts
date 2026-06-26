@@ -31,6 +31,13 @@ test.describe('DispatchLab operator flow', () => {
     await expect(demoPanel.getByText(/Ao vivo/)).toBeVisible();
 
     await expect(demoPanel.getByRole('tab', { name: 'Controle' })).toBeVisible();
+
+    await demoPanel.getByRole('button', { name: 'Resetar demo' }).click();
+    await expect(page.getByRole('dialog', { name: /Resetar demo/i })).toBeVisible();
+    await expect(page.getByText(/tick 0/i)).toBeVisible();
+    await page.getByRole('button', { name: 'Confirmar reset' }).click();
+    await expect(demoPanel.getByText('Tick 0')).toBeVisible({ timeout: 15_000 });
+
     await demoPanel.getByRole('tab', { name: 'Cenários' }).click();
     await expect(demoPanel.getByText('POA-07 — sinal atrasado')).toBeVisible();
     await expect(demoPanel.getByRole('button', { name: 'Aplicar cenário' })).toBeDisabled();
