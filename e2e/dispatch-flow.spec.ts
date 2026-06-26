@@ -65,7 +65,7 @@ test.describe('DispatchLab operator flow', () => {
     await expect(exploreCard).toBeVisible();
     await exploreCard.getByRole('button', { name: 'Executar' }).click();
     await expect(demoPanelAfterReset).toBeVisible();
-    await expect(demoPanelAfterReset.getByText(/Mapa enquadrado|visão do mapa/i)).toBeVisible({
+    await expect(page.locator('.snackbar').getByText(/Mapa enquadrado|visão do mapa/i)).toBeVisible({
       timeout: 10_000,
     });
 
@@ -76,7 +76,7 @@ test.describe('DispatchLab operator flow', () => {
     await expect(page.getByRole('dialog', { name: /Aplicar cenário/i })).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar' }).click();
     await expect(page.getByRole('dialog', { name: /Aplicar cenário/i })).toBeHidden({ timeout: 10_000 });
-    await expect(demoPanelAfterReset.locator('.demo-center__feedback')).toContainText(/Agendará \d+ evento/i, {
+    await expect(page.locator('.snackbar').getByText(/Agendará \d+ evento/i)).toBeVisible({
       timeout: 10_000,
     });
 

@@ -1,0 +1,27 @@
+<div class="snackbar-host" aria-live="polite">
+  @for (item of toast.messages(); track item.id) {
+    <div
+      class="snackbar snackbar--{{ item.tone }}"
+      role="status"
+      [attr.aria-busy]="item.tone === 'loading' ? 'true' : null"
+    >
+      <span class="snackbar__bar" aria-hidden="true"></span>
+      <div class="snackbar__content">
+        @if (item.tone === 'loading') {
+          <app-spinner size="sm" />
+        }
+        <p class="snackbar__message">{{ item.message }}</p>
+      </div>
+      @if (item.tone !== 'loading') {
+        <button
+          type="button"
+          class="snackbar__dismiss"
+          aria-label="Fechar"
+          (click)="dismiss(item.id)"
+        >
+          ×
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -63,8 +63,11 @@
 
 .action-confirm__loading {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--accent);
 }
 
 .action-confirm__warning {
@@ -116,6 +119,10 @@
   border: none;
   background: var(--accent);
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
 
 .action-confirm__btn--primary.action-confirm__btn--destructive {

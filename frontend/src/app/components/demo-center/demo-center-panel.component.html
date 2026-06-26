@@ -59,18 +59,30 @@
                 class="demo-center__quick"
                 [disabled]="!canForceStale"
                 [title]="staleButtonTitle"
+                [attr.aria-busy]="isTriggering('go_stale') ? 'true' : null"
                 (click)="onTriggerStale()"
               >
-                Forçar sinal atrasado
+                @if (isTriggering('go_stale')) {
+                  <app-spinner size="sm" />
+                  {{ LOADING_LABELS.pending.forcingStale }}
+                } @else {
+                  Forçar sinal atrasado
+                }
               </button>
               <button
                 type="button"
                 class="demo-center__quick"
                 [disabled]="!canReconnect"
                 [title]="reconnectButtonTitle"
+                [attr.aria-busy]="isTriggering('reconnect') ? 'true' : null"
                 (click)="onTriggerReconnect()"
               >
-                Reconectar
+                @if (isTriggering('reconnect')) {
+                  <app-spinner size="sm" />
+                  {{ LOADING_LABELS.pending.reconnecting }}
+                } @else {
+                  Reconectar
+                }
               </button>
             </div>
           </section>
@@ -105,8 +117,8 @@
               <span>{{ sessionStatusLabel }}</span>
             </div>
 
-            @if (scenarioFeedback) {
-              <p class="demo-center__feedback" role="status">{{ scenarioFeedback }}</p>
+            @if (scenarioBlockFeedback) {
+              <p class="demo-center__feedback" role="status">{{ scenarioBlockFeedback }}</p>
             }
 
             <div class="demo-center__scenarios">
@@ -120,9 +132,11 @@
                     type="button"
                     class="demo-center__scenario-run"
                     [disabled]="footerBusy || !!runningScenarioId"
+                    [attr.aria-busy]="isScenarioRunning(scenario.id) ? 'true' : null"
                     (click)="runScenario(scenario)"
                   >
                     @if (isScenarioRunning(scenario.id)) {
+                      <app-spinner size="sm" />
                       Executando…
                     } @else {
                       Executar

@@ -11,7 +11,10 @@
     </div>
   </div>
 
-  <p class="dispatch-boot__message">{{ message }}</p>
+  <p class="dispatch-boot__message">
+    <app-spinner size="sm" />
+    {{ message }}
+  </p>
 
   <div class="dispatch-boot__progress" aria-hidden="true">
     <div class="dispatch-boot__progress-bar"></div>

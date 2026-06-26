@@ -10,7 +10,10 @@
 
     <div class="action-confirm__body">
       @if (applying) {
-        <p class="action-confirm__loading">{{ preview.applying_label }}</p>
+        <p class="action-confirm__loading">
+          <app-spinner size="sm" />
+          {{ preview.applying_label }}
+        </p>
       } @else if (!preview.can_apply && preview.block_reason) {
         <p class="action-confirm__block">{{ preview.block_reason }}</p>
       } @else {
@@ -44,8 +47,12 @@
         class="action-confirm__btn action-confirm__btn--primary"
         [class.action-confirm__btn--destructive]="preview.severity === 'destructive'"
         [disabled]="!preview.can_apply || applying"
+        [attr.aria-busy]="applying ? 'true' : null"
         (click)="confirmed.emit()"
       >
+        @if (applying) {
+          <app-spinner size="sm" />
+        }
         {{ confirmButtonLabel }}
       </button>
     </footer>
