@@ -4,6 +4,61 @@ import { GUIDED_DEMO_SCENARIOS } from './demo.constants';
 
 export type DemoPanelTab = 'control' | 'scenarios' | 'events';
 
+export const SCRIPTED_SCENARIOS = new Set(['network_surprise', 'double_stale']);
+
+export interface DemoScenarioLockState {
+  locked: boolean;
+  reason: string;
+  remainingEvents: number;
+  activeTitle: string;
+  activeId: string;
+}
+
+export function scenarioTitleFromId(id: string, info: DemoInfo | null): string {
+  const match = demoScenarios(info).find((s) => s.id === id);
+  return match?.title ?? id;
+}
+
+export function demoScenarioLock(info: DemoInfo | null, tick: number): DemoScenarioLockState {
+  const idle: DemoScenarioLockState = {
+    locked: false,
+    reason: '',
+    remainingEvents: 0,
+    activeTitle: '',
+    activeId: '',
+  };
+  const lock = info?.scenario_lock;
+  if (!lock || lock.until_tick <= tick) {
+    return idle;
+  }
+  const remaining = lock.remaining_events;
+  const activeTitle = scenarioTitleFromId(lock.active_id, info);
+  return {
+    locked: true,
+    reason: `Cenário anterior ainda em andamento (${remaining} evento(s) restante(s)). Aguarde ou resete a demo.`,
+    remainingEvents: remaining,
+    activeTitle,
+    activeId: lock.active_id,
+  };
+}
+
+export function isScenarioBlocked(scenarioId: string, lock: DemoScenarioLockState): boolean {
+  return lock.locked && SCRIPTED_SCENARIOS.has(scenarioId);
+}
+
+export function demoScenarioModeBanner(lock: DemoScenarioLockState): {
+  heading: string;
+  detail: string | null;
+} {
+  if (!lock.locked) {
+    return { heading: 'Modo atual · Operação ao vivo', detail: null };
+  }
+  return {
+    heading: `Cenário ativo · ${lock.activeTitle}`,
+    detail: `${lock.remainingEvents} evento(s) restante(s) — aguarde ou resete a demo`,
+  };
+}
+
 export function demoScenarios(info: DemoInfo | null) {
   return info?.scenarios?.length ? info.scenarios : GUIDED_DEMO_SCENARIOS;
 }

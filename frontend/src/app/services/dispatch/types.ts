@@ -154,4 +154,11 @@ export interface DemoInfo {
   controls_enabled: boolean;
   scenario_seed: number;
   session_nonce?: number;
+  scenario_lock?: ScenarioLockInfo;
+}
+
+export interface ScenarioLockInfo {
+  active_id: string;
+  until_tick: number;
+  remaining_events: number;
 }

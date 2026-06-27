@@ -112,9 +112,13 @@
 
         @case ('scenarios') {
           <section class="demo-center__section">
-            <div class="demo-center__mode-banner" aria-live="polite">
-              <strong>Modo atual · Operação ao vivo</strong>
-              <span>{{ sessionStatusLabel }}</span>
+            <div
+              class="demo-center__mode-banner"
+              [class.demo-center__mode-banner--locked]="scenarioLock.locked"
+              aria-live="polite"
+            >
+              <strong>{{ scenarioModeBanner.heading }}</strong>
+              <span>{{ scenarioModeBanner.detail ?? sessionStatusLabel }}</span>
             </div>
 
             @if (scenarioBlockFeedback) {
@@ -131,7 +135,9 @@
                   <button
                     type="button"
                     class="demo-center__scenario-run"
-                    [disabled]="footerBusy || !!runningScenarioId"
+                    [class.demo-center__scenario-run--locked]="isScenarioRunLocked(scenario)"
+                    [disabled]="isScenarioRunDisabled(scenario)"
+                    [title]="scenarioRunTitle(scenario) || null"
                     [attr.aria-busy]="isScenarioRunning(scenario.id) ? 'true' : null"
                     (click)="runScenario(scenario)"
                   >

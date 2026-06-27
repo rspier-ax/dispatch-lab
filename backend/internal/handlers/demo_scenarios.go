@@ -97,7 +97,7 @@ func (a *API) handleDemoPreviewScenario(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID, a.SessionNonce, previewNonce(a.SessionNonce, req.ScenarioID))
+	preview := a.buildScenarioPreview(req.ScenarioID, req.CourierID, previewNonce(a.SessionNonce, req.ScenarioID))
 	writeJSON(w, http.StatusOK, preview)
 }
 
@@ -121,7 +121,7 @@ func (a *API) handleDemoApplyScenario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	preview := buildScenarioPreview(a.Store, req.ScenarioID, req.CourierID, a.SessionNonce, previewNonce(a.SessionNonce, req.ScenarioID))
+	preview := a.buildScenarioPreview(req.ScenarioID, req.CourierID, previewNonce(a.SessionNonce, req.ScenarioID))
 	if !preview.CanApply {
 		writeJSON(w, http.StatusConflict, preview)
 		return
@@ -153,6 +153,7 @@ func applyScenario(a *API, def scenarioDef, preview domain.ScenarioPreview, conf
 
 	switch def.kind {
 	case "random_scripted":
+		var scripts []domain.ScriptAction
 		if preview.RequiresReset && confirmReset {
 			sc, err := scenario.Load()
 			if err != nil {
@@ -160,19 +161,21 @@ func applyScenario(a *API, def scenarioDef, preview domain.ScenarioPreview, conf
 			}
 			a.Sim.Reset(sc)
 			a.SessionNonce++
+			a.clearScenarioLock()
 			result.ResetPerformed = true
-			scripts := demo.RollSessionPlan(sc.Seed, a.SessionNonce, 0, demo.LiveCourierIDs(a.Store), def.planOpts)
+			scripts = demo.RollSessionPlan(sc.Seed, a.SessionNonce, 0, demo.LiveCourierIDs(a.Store), def.planOpts)
 			a.Store.SetScripts(scripts)
 			result.Scripts = scripts
 			result.UIHint = summarizeUIHint(scripts, 0, 1000)
 		} else {
 			a.SessionNonce++
 			tick := a.Store.Tick()
-			scripts := demo.RollSessionPlan(a.Store.Scenario().Seed, a.SessionNonce, tick, demo.LiveCourierIDs(a.Store), def.planOpts)
+			scripts = demo.RollSessionPlan(a.Store.Scenario().Seed, a.SessionNonce, tick, demo.LiveCourierIDs(a.Store), def.planOpts)
 			a.Store.SetScripts(scripts)
 			result.Scripts = scripts
 			result.UIHint = summarizeUIHint(scripts, tick, 1000)
 		}
+		a.setScenarioLock(def.id, scripts)
 
 	case "visual":
 		switch def.id {
@@ -222,7 +225,8 @@ func summarizeUIHint(scripts []domain.ScriptAction, tick, intervalMS int) string
 	return "Eventos de rede agendados."
 }
 
-func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string, sessionNonce, rollNonce int) domain.ScenarioPreview {
+func (a *API) buildScenarioPreview(scenarioID, courierOverride string, rollNonce int) domain.ScenarioPreview {
+	st := a.Store
 	def, ok := findScenarioDef(scenarioID)
 	if !ok {
 		return domain.ScenarioPreview{
@@ -258,6 +262,14 @@ func buildScenarioPreview(st *store.Store, scenarioID, courierOverride string, s
 		pastScript := scriptsWouldBePast(st, rollNonce, baseTick, seed, live, def.planOpts)
 		if pastScript {
 			baseTick = 0
+		}
+
+		if a.isScenarioLockActive() && !pastScript {
+			remaining := countRemainingScripts(st, tick)
+			return domain.ScenarioPreview{
+				CanApply:    false,
+				BlockReason: scenarioLockBlockReason(remaining),
+			}
 		}
 
 		scripts := demo.RollSessionPlan(seed, rollNonce, baseTick, live, def.planOpts)

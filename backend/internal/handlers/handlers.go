@@ -16,11 +16,13 @@ import (
 )
 
 type API struct {
-	Store           *store.Store
-	Hub             *sse.Hub
-	Sim             *simulator.Simulator
-	ControlsEnabled bool
-	SessionNonce    int
+	Store                 *store.Store
+	Hub                   *sse.Hub
+	Sim                   *simulator.Simulator
+	ControlsEnabled       bool
+	SessionNonce          int
+	ActiveScenarioID      string
+	ScenarioLockUntilTick int
 }
 
 func (a *API) Register(mux *http.ServeMux) {
@@ -99,6 +101,7 @@ func (a *API) handleDemoInfo(w http.ResponseWriter, _ *http.Request) {
 		ScenarioSeed:    sc.Seed,
 		SessionNonce:    a.SessionNonce,
 		Scenarios:       demoScenarios(),
+		ScenarioLock:    a.scenarioLockInfo(),
 	})
 }
 
@@ -114,6 +117,7 @@ func (a *API) handleDemoReset(w http.ResponseWriter, r *http.Request) {
 	}
 	a.Sim.Reset(sc)
 	a.SessionNonce++
+	a.clearScenarioLock()
 	demo.ApplySessionPlan(a.Store, sc.Seed, a.SessionNonce, nil)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "reset"})
 }
@@ -151,6 +155,11 @@ func (a *API) handleDemoTrigger(w http.ResponseWriter, r *http.Request) {
 	var req triggerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+	if a.isScenarioLockActive() {
+		remaining := countRemainingScripts(a.Store, a.Store.Tick())
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": scenarioLockBlockReason(remaining)})
 		return
 	}
 	if !a.Sim.TriggerAction(req.CourierID, req.Action) {
