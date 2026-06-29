@@ -8,11 +8,14 @@ import {
   demoSessionStatusLabel,
   filterDemoEvents,
   filterPlatformFeed,
+  filterPlatformFeedByKind,
   eventTypeBadge,
   groupEventsByRecency,
   groupPlatformFeedByRecency,
   isScenarioBlocked,
+  partitionScheduleRows,
   platformFeedBadge,
+  platformFeedKindLabel,
   platformFeedTitle,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
@@ -246,5 +249,41 @@ describe('demo.utils', () => {
     expect(platformFeedBadge(feed[1]).tone).toBe('live');
     expect(platformFeedTitle(feed[1])).toBe('Sinal ao vivo');
     expect(groupPlatformFeedByRecency(feed)).toHaveSize(1);
+  });
+
+  it('partitions schedule rows into upcoming and done', () => {
+    const rows = buildScheduleRows(
+      [
+        { courier_id: 'POA-01', tick: 5, action: 'go_stale' },
+        { courier_id: 'POA-07', tick: 20, action: 'reconnect' },
+      ],
+      10,
+      1000,
+    );
+    const parts = partitionScheduleRows(rows);
+    expect(parts.done).toHaveSize(1);
+    expect(parts.upcoming).toHaveSize(1);
+    expect(parts.upcoming[0].status).toBe('next');
+  });
+
+  it('filters platform feed by kind', () => {
+    const feed: PlatformFeedItem[] = [
+      {
+        kind: 'delivery_event',
+        courier_id: 'POA-01',
+        type: 'went_stale',
+        message: 'Sinal atrasado',
+        timestamp: '2026-01-01T10:00:00Z',
+      },
+      {
+        kind: 'tracking_change',
+        courier_id: 'POA-07',
+        tracking_state: 'live',
+        timestamp: '2026-01-01T10:01:00Z',
+      },
+    ];
+    expect(filterPlatformFeedByKind(feed, 'signal')).toHaveSize(1);
+    expect(platformFeedKindLabel(feed[1])).toBe('Tracking');
+    expect(filterPlatformFeed(feed, null, 'tracking')).toHaveSize(1);
   });
 });

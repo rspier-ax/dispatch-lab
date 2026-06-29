@@ -186,13 +186,57 @@ export function scheduleStatusLabel(status: ScheduleRowStatus): string {
   return 'Aguardando';
 }
 
+export function partitionScheduleRows(rows: ScheduleRow[]): {
+  upcoming: ScheduleRow[];
+  done: ScheduleRow[];
+} {
+  return {
+    upcoming: rows.filter((r) => r.status !== 'done'),
+    done: rows.filter((r) => r.status === 'done'),
+  };
+}
+
+export type PlatformFeedKindFilter = 'all' | 'signal' | 'network' | 'tracking' | 'route';
+
+export function platformFeedKindLabel(item: PlatformFeedItem): string {
+  if (item.kind === 'tracking_change') {
+    if (item.tracking_state === 'live') return 'Tracking';
+    if (item.tracking_state === 'stale') return 'Sinal';
+    return 'Sem sinal';
+  }
+  const badge = eventTypeBadge(item.type);
+  return badge.label;
+}
+
+export function platformFeedKindKey(item: PlatformFeedItem): PlatformFeedKindFilter {
+  if (item.kind === 'tracking_change') return 'tracking';
+  const type = item.type;
+  if (type.includes('stale') || type === 'went_stale') return 'signal';
+  if (type.includes('reconnect') || type === 'reconnected') return 'network';
+  if (type.includes('approach') || type.includes('pickup') || type.includes('transit')) {
+    return 'route';
+  }
+  return 'tracking';
+}
+
+export function filterPlatformFeedByKind(
+  feed: PlatformFeedItem[],
+  kind: PlatformFeedKindFilter,
+): PlatformFeedItem[] {
+  if (kind === 'all') return feed;
+  return feed.filter((item) => platformFeedKindKey(item) === kind);
+}
+
 export function filterPlatformFeed(
   feed: PlatformFeedItem[],
   courierFilter: string | null,
+  kindFilter: PlatformFeedKindFilter = 'all',
 ): PlatformFeedItem[] {
-  const list = [...feed].reverse();
-  if (!courierFilter) return list;
-  return list.filter((item) => item.courier_id === courierFilter);
+  let list = [...feed].reverse();
+  if (courierFilter) {
+    list = list.filter((item) => item.courier_id === courierFilter);
+  }
+  return filterPlatformFeedByKind(list, kindFilter);
 }
 
 export function platformFeedBadge(

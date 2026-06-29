@@ -1,0 +1,235 @@
+<section class="audit" aria-label="Auditoria operacional">
+  <div class="audit-kpi" aria-live="polite">
+    <div class="audit-kpi__card">
+      <span class="audit-kpi__label">Tempo</span>
+      <strong class="audit-kpi__value">{{ elapsedLabel }}</strong>
+    </div>
+    <div class="audit-kpi__card">
+      <span class="audit-kpi__label">Tick</span>
+      <strong class="audit-kpi__value mono">{{ tick }}</strong>
+    </div>
+    <div class="audit-kpi__card">
+      <span class="audit-kpi__label">Agenda</span>
+      <strong class="audit-kpi__value">{{ upcomingCount }} pendente(s)</strong>
+    </div>
+    <div class="audit-kpi__card">
+      <span class="audit-kpi__label">Fila</span>
+      <strong class="audit-kpi__value">{{ queuedRows.length }}</strong>
+    </div>
+    <div class="audit-kpi__card" [class.audit-kpi__card--locked]="scenarioLock.locked">
+      <span class="audit-kpi__label">Cenário</span>
+      <strong class="audit-kpi__value audit-kpi__value--truncate">{{ scenarioKpiLabel }}</strong>
+      @if (scenarioLock.locked) {
+        <span class="audit-kpi__meta">{{ scenarioLock.remainingEvents }} restante(s)</span>
+      }
+    </div>
+  </div>
+
+  <div class="audit-grid">
+    <div #agendaSection class="audit-pane audit-pane--agenda">
+      <header class="audit-pane__head">
+        <h3>Agenda</h3>
+        <span class="audit-pane__count">{{ scheduleRows.length }} evento(s)</span>
+      </header>
+      <div class="audit-pane__body">
+        @if (scheduleRows.length === 0) {
+          <p class="audit-empty">Sem eventos agendados</p>
+        } @else {
+          @if (partitionedSchedule.upcoming.length === 0) {
+            <p class="audit-empty audit-empty--inline">Nenhum evento pendente</p>
+          } @else {
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th scope="col">Status</th>
+                  <th scope="col">Tick</th>
+                  <th scope="col">ETA</th>
+                  <th scope="col">Entregador</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of partitionedSchedule.upcoming; track row.tick + row.courierId) {
+                  <tr
+                    class="audit-table__row"
+                    [class.audit-table__row--next]="row.status === 'next'"
+                  >
+                    <td>
+                      <span class="audit-badge audit-badge--{{ row.status }}">
+                        {{ scheduleStatusLabel(row.status) }}
+                      </span>
+                    </td>
+                    <td class="mono">{{ row.tick }}</td>
+                    <td class="mono">~{{ row.etaSeconds | number: '1.0-0' }}s</td>
+                    <td>
+                      <button type="button" class="audit-link" (click)="onFocusCourier(row.courierId)">
+                        {{ row.courierId }}
+                      </button>
+                    </td>
+                    <td>{{ row.actionLabel }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @if (partitionedSchedule.done.length > 0) {
+            <button
+              type="button"
+              class="audit-collapse"
+              [attr.aria-expanded]="doneAgendaExpanded"
+              (click)="toggleDoneAgenda()"
+            >
+              Concluídos ({{ partitionedSchedule.done.length }})
+              <span aria-hidden="true">{{ doneAgendaExpanded ? '▾' : '▸' }}</span>
+            </button>
+            @if (doneAgendaExpanded) {
+              <table class="audit-table audit-table--muted">
+                <thead>
+                  <tr>
+                    <th scope="col">Status</th>
+                    <th scope="col">Tick</th>
+                    <th scope="col">Entregador</th>
+                    <th scope="col">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of partitionedSchedule.done; track row.tick + row.courierId) {
+                    <tr class="audit-table__row audit-table__row--done">
+                      <td>
+                        <span class="audit-badge audit-badge--done">Concluído</span>
+                      </td>
+                      <td class="mono">{{ row.tick }}</td>
+                      <td>
+                        <button type="button" class="audit-link" (click)="onFocusCourier(row.courierId)">
+                          {{ row.courierId }}
+                        </button>
+                      </td>
+                      <td>{{ row.actionLabel }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          }
+        }
+      </div>
+    </div>
+
+    <div class="audit-pane audit-pane--queue">
+      <header class="audit-pane__head">
+        <h3>Fila na operação</h3>
+        <span class="audit-pane__count">{{ queuedRows.length }} entrega(s)</span>
+      </header>
+      <div class="audit-pane__body">
+        @if (queuedRows.length === 0) {
+          <p class="audit-empty">Nenhuma entrega aguardando rota</p>
+        } @else {
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th scope="col">Entregador</th>
+                <th scope="col">Entrega</th>
+                <th scope="col">Restaurante</th>
+                <th scope="col">ETA</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of queuedRows; track row.deliveryId) {
+                <tr class="audit-table__row">
+                  <td>
+                    <button type="button" class="audit-link" (click)="onFocusCourier(row.courierId)">
+                      {{ row.courierId }}
+                    </button>
+                    <span class="audit-table__sub">{{ row.courierName }}</span>
+                  </td>
+                  <td class="mono">{{ row.deliveryId }}</td>
+                  <td>{{ row.restaurant }}</td>
+                  <td class="mono">
+                    @if (row.etaSeconds > 0) {
+                      {{ formatEta(row.etaSeconds) }}
+                    } @else {
+                      —
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+
+    <div class="audit-pane audit-pane--log">
+      <header class="audit-pane__head audit-pane__head--toolbar">
+        <div>
+          <h3>Histórico ao vivo</h3>
+          <span class="audit-pane__count">{{ filteredFeed.length }} evento(s)</span>
+        </div>
+        <div class="audit-toolbar">
+          <label class="audit-toolbar__field">
+            <span class="sr-only">Filtrar por entregador</span>
+            <select
+              [value]="eventCourierFilter ?? ''"
+              (change)="eventCourierFilter = $any($event.target).value || null"
+            >
+              <option value="">Todos entregadores</option>
+              @for (c of couriers; track c.id) {
+                <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
+              }
+            </select>
+          </label>
+          <div class="audit-chips" role="group" aria-label="Filtrar por tipo">
+            @for (chip of kindFilters; track chip.value) {
+              <button
+                type="button"
+                class="audit-chip"
+                [class.audit-chip--active]="kindFilter === chip.value"
+                [attr.aria-pressed]="kindFilter === chip.value"
+                (click)="setKindFilter(chip.value)"
+              >
+                {{ chip.label }}
+              </button>
+            }
+          </div>
+          @if (eventCourierFilter || kindFilter !== 'all') {
+            <button type="button" class="audit-toolbar__clear" (click)="clearFilters()">Limpar</button>
+          }
+        </div>
+      </header>
+      <div class="audit-pane__body">
+        @if (filteredFeed.length === 0) {
+          <p class="audit-empty audit-empty--feed">Aguardando eventos do stream…</p>
+        } @else {
+          <table class="audit-table audit-table--log">
+            <thead>
+              <tr>
+                <th scope="col">Hora</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Entregador</th>
+                <th scope="col">Entrega</th>
+                <th scope="col">Evento</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredFeed; track feedTrackKey(item)) {
+                <tr class="audit-table__row audit-table__row--clickable" (click)="onFocusCourier(item.courier_id)">
+                  <td class="mono">{{ formatTime(item.timestamp) }}</td>
+                  <td>{{ feedKindLabel(item) }}</td>
+                  <td class="mono">{{ item.courier_id }}</td>
+                  <td class="mono">{{ feedDeliveryId(item) ?? '—' }}</td>
+                  <td>
+                    <span class="audit-log__title">{{ feedTitle(item) }}</span>
+                    @if (feedMessage(item); as message) {
+                      <span class="audit-log__message">{{ message }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,8 +1,7 @@
-import { DecimalPipe } from '@angular/common';
 import {
   Component,
-  ElementRef,
   EventEmitter,
+  HostBinding,
   Input,
   OnChanges,
   Output,
@@ -20,7 +19,6 @@ import {
   ScriptAction,
 } from '../../services/dispatch/types';
 import { DemoActionKind, DemoActionPreview } from '../../lib/demo-action.types';
-import { formatEta, formatTime } from '../../lib/dispatch-view.utils';
 import {
   DEMO_CONTROLS_TOOLTIP,
   DemoMapPrefs,
@@ -36,20 +34,14 @@ import {
   demoScenarioModeBanner,
   demoScenarios,
   demoSessionStatusLabel,
-  filterPlatformFeed,
-  groupPlatformFeedByRecency,
   isScenarioBlocked,
-  platformFeedBadge,
-  platformFeedDeliveryId,
-  platformFeedMessage,
-  platformFeedTitle,
-  scheduleStatusLabel,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
 } from '../../lib/demo.utils';
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
 import { ToastService } from '../../core/ui/toast.service';
 import { DemoActionConfirmComponent } from './demo-action-confirm.component';
+import { DemoOperationsAuditComponent } from './demo-operations-audit.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { firstValueFrom } from 'rxjs';
 
@@ -58,12 +50,17 @@ const INSTANT_SCENARIOS = new Set(['explore_routes', 'tracking_states', 'queue_f
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
-  imports: [DecimalPipe, DemoActionConfirmComponent, SpinnerComponent],
+  imports: [DemoActionConfirmComponent, DemoOperationsAuditComponent, SpinnerComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
 export class DemoCenterPanelComponent implements OnChanges {
-  @ViewChild('agendaSection') agendaSection?: ElementRef<HTMLElement>;
+  @HostBinding('class.demo-center--audit')
+  get auditMode(): boolean {
+    return this.activeTab === 'events';
+  }
+
+  @ViewChild(DemoOperationsAuditComponent) auditPanel?: DemoOperationsAuditComponent;
 
   @Input() open = false;
   @Input({ required: true }) demoInfo: DemoInfo | null = null;
@@ -96,7 +93,6 @@ export class DemoCenterPanelComponent implements OnChanges {
   ];
 
   activeTab: DemoPanelTab = 'control';
-  eventCourierFilter: string | null = null;
   confirmOpen = false;
   confirmPreview: DemoActionPreview | null = null;
   confirmAction: DemoActionKind | null = null;
@@ -211,22 +207,6 @@ export class DemoCenterPanelComponent implements OnChanges {
     return 'Reconectar entregador selecionado.';
   }
 
-  filteredFeed(): PlatformFeedItem[] {
-    return filterPlatformFeed(this.platformFeed, this.eventCourierFilter);
-  }
-
-  feedGroups(): { label: string; items: PlatformFeedItem[] }[] {
-    return groupPlatformFeedByRecency(this.filteredFeed());
-  }
-
-  feedBadge = platformFeedBadge;
-  feedTitle = platformFeedTitle;
-  feedMessage = platformFeedMessage;
-  feedDeliveryId = platformFeedDeliveryId;
-  scheduleStatusLabel = scheduleStatusLabel;
-  formatTime = formatTime;
-  formatEta = formatEta;
-
   setTab(tab: DemoPanelTab): void {
     this.activeTab = tab;
   }
@@ -234,17 +214,11 @@ export class DemoCenterPanelComponent implements OnChanges {
   onStatusStripClick(): void {
     if (!this.hasScheduledEvents) return;
     this.activeTab = 'events';
-    requestAnimationFrame(() => {
-      this.agendaSection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    requestAnimationFrame(() => this.auditPanel?.scrollToAgenda());
   }
 
   onFocusCourier(courierId: string): void {
     this.focusCourier.emit(courierId);
-  }
-
-  feedTrackKey(item: PlatformFeedItem): string {
-    return `${item.kind}-${item.courier_id}-${item.timestamp}-${item.kind === 'delivery_event' ? item.type : item.tracking_state}`;
   }
 
   onClose(): void {

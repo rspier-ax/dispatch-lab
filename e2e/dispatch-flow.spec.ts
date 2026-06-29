@@ -101,9 +101,13 @@ test.describe('DispatchLab operator flow', () => {
 
     await demoPanelAfterReset.getByRole('tab', { name: 'Eventos' }).click();
     await expect(demoPanelAfterReset.getByRole('heading', { name: 'Agenda' })).toBeVisible();
-    await expect(demoPanelAfterReset.locator('.demo-center__schedule-row')).toHaveCount(2, {
+    await expect(demoPanelAfterReset.locator('.audit-table__row--next')).toHaveCount(1, {
       timeout: 10_000,
     });
     await expect(demoPanelAfterReset.getByText('Próximo', { exact: true })).toBeVisible();
+    await expect(demoPanelAfterReset.getByText(/pendente\(s\)/i)).toBeVisible();
+
+    const panelBox = await demoPanelAfterReset.boundingBox();
+    expect(panelBox?.width ?? 0).toBeGreaterThan(500);
   });
 });
