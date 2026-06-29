@@ -17,6 +17,7 @@ import {
   platformFeedBadge,
   platformFeedKindLabel,
   platformFeedTitle,
+  recentPlatformFeed,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
 } from './demo.utils';
@@ -264,6 +265,33 @@ describe('demo.utils', () => {
     expect(parts.done).toHaveSize(1);
     expect(parts.upcoming).toHaveSize(1);
     expect(parts.upcoming[0].status).toBe('next');
+  });
+
+  it('returns most recent platform feed items', () => {
+    const feed: PlatformFeedItem[] = [
+      {
+        kind: 'delivery_event',
+        courier_id: 'POA-01',
+        type: 'went_stale',
+        message: 'A',
+        timestamp: '2026-01-01T10:00:00Z',
+      },
+      {
+        kind: 'tracking_change',
+        courier_id: 'POA-07',
+        tracking_state: 'live',
+        timestamp: '2026-01-01T10:01:00Z',
+      },
+      {
+        kind: 'delivery_event',
+        courier_id: 'POA-03',
+        type: 'reconnected',
+        message: 'C',
+        timestamp: '2026-01-01T10:02:00Z',
+      },
+    ];
+    expect(recentPlatformFeed(feed, 2)).toEqual([feed[2], feed[1]]);
+    expect(recentPlatformFeed(feed)).toHaveSize(3);
   });
 
   it('filters platform feed by kind', () => {

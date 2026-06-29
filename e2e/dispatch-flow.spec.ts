@@ -100,14 +100,27 @@ test.describe('DispatchLab operator flow', () => {
     await expect(demoPanelAfterReset.getByRole('button', { name: 'Reconectar' })).toBeDisabled();
 
     await demoPanelAfterReset.getByRole('tab', { name: 'Eventos' }).click();
-    await expect(demoPanelAfterReset.getByRole('heading', { name: 'Agenda' })).toBeVisible();
-    await expect(demoPanelAfterReset.locator('.audit-table__row--next')).toHaveCount(1, {
-      timeout: 10_000,
-    });
-    await expect(demoPanelAfterReset.getByText('Próximo', { exact: true })).toBeVisible();
-    await expect(demoPanelAfterReset.getByText(/pendente\(s\)/i)).toBeVisible();
+    await expect(demoPanelAfterReset.locator('.events-summary')).toBeVisible();
+    await expect(demoPanelAfterReset.getByText('Próximo evento')).toBeVisible({ timeout: 10_000 });
+    await expect(
+      demoPanelAfterReset.getByRole('button', { name: 'Ver auditoria completa' }),
+    ).toBeVisible();
 
     const panelBox = await demoPanelAfterReset.boundingBox();
-    expect(panelBox?.width ?? 0).toBeGreaterThan(500);
+    expect(panelBox?.width ?? 0).toBeLessThanOrEqual(500);
+
+    await page.getByRole('button', { name: 'Eventos operacionais' }).click();
+    const auditShell = page.locator('.audit-shell');
+    await expect(auditShell).toBeVisible();
+    await expect(auditShell.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible();
+    await expect(auditShell.locator('.audit-table__row--next')).toHaveCount(1, {
+      timeout: 10_000,
+    });
+
+    const logBody = auditShell.locator('.audit-pane--log .audit-pane__body');
+    await logBody.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(logBody.locator('.audit-table__row').first()).toBeVisible();
   });
 });
