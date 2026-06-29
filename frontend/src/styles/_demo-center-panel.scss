@@ -161,24 +161,15 @@
 }
 
 .demo-center__tab-panel--events {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   gap: 0;
 }
 
-.demo-center--audit .demo-center__body,
-app-demo-center-panel.demo-center--audit .demo-center__body {
-  padding: 0.75rem;
-}
-
-.demo-center--audit .demo-center__section--events,
-app-demo-center-panel.demo-center--audit .demo-center__section--events {
+.demo-center__section--events {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  gap: 0.625rem;
 }
 
 .demo-center__section--fill {
@@ -200,12 +191,6 @@ app-demo-center-panel.demo-center--audit .demo-center__section--events {
 .demo-center__playback {
   min-width: 0;
   max-width: 100%;
-}
-
-.demo-center__section--events {
-  flex: 1;
-  min-height: 0;
-  gap: 0.625rem;
 }
 
 .demo-center__selectors {

@@ -1,12 +1,10 @@
 import {
   Component,
   EventEmitter,
-  HostBinding,
   Input,
   OnChanges,
   Output,
   SimpleChanges,
-  ViewChild,
   inject,
 } from '@angular/core';
 import {
@@ -41,7 +39,7 @@ import {
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
 import { ToastService } from '../../core/ui/toast.service';
 import { DemoActionConfirmComponent } from './demo-action-confirm.component';
-import { DemoOperationsAuditComponent } from './demo-operations-audit.component';
+import { DemoEventsSummaryComponent } from './demo-events-summary.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { firstValueFrom } from 'rxjs';
 
@@ -50,18 +48,11 @@ const INSTANT_SCENARIOS = new Set(['explore_routes', 'tracking_states', 'queue_f
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
-  imports: [DemoActionConfirmComponent, DemoOperationsAuditComponent, SpinnerComponent],
+  imports: [DemoActionConfirmComponent, DemoEventsSummaryComponent, SpinnerComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
 export class DemoCenterPanelComponent implements OnChanges {
-  @HostBinding('class.demo-center--audit')
-  get auditMode(): boolean {
-    return this.activeTab === 'events';
-  }
-
-  @ViewChild(DemoOperationsAuditComponent) auditPanel?: DemoOperationsAuditComponent;
-
   @Input() open = false;
   @Input({ required: true }) demoInfo: DemoInfo | null = null;
   @Input() tick = 0;
@@ -82,6 +73,7 @@ export class DemoCenterPanelComponent implements OnChanges {
   @Output() closed = new EventEmitter<void>();
   @Output() applyScenario = new EventEmitter<ScenarioApplyResult>();
   @Output() focusCourier = new EventEmitter<string>();
+  @Output() openFullAudit = new EventEmitter<void>();
   @Output() mapPrefsChange = new EventEmitter<DemoMapPrefs>();
 
   readonly demoControlsHint = DEMO_CONTROLS_TOOLTIP;
@@ -214,7 +206,10 @@ export class DemoCenterPanelComponent implements OnChanges {
   onStatusStripClick(): void {
     if (!this.hasScheduledEvents) return;
     this.activeTab = 'events';
-    requestAnimationFrame(() => this.auditPanel?.scrollToAgenda());
+  }
+
+  onOpenFullAudit(): void {
+    this.openFullAudit.emit();
   }
 
   onFocusCourier(courierId: string): void {

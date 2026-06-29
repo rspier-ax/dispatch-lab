@@ -58,6 +58,7 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   upcomingScripts: ScriptAction[] = [];
   tickIntervalMs = 1000;
   demoCenterOpen = false;
+  operationsAuditOpen = false;
   demoMapPrefs: DemoMapPrefs = { ...DEFAULT_DEMO_MAP_PREFS };
   demoResetting = signal(false);
   deliveryPhaseFilterOverride = signal<DeliveryPhaseFilter | null>(null);
@@ -191,7 +192,30 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   }
 
   onToggleDemoCenter(): void {
-    this.demoCenterOpen = !this.demoCenterOpen;
+    if (this.demoCenterOpen) {
+      this.demoCenterOpen = false;
+      return;
+    }
+    this.operationsAuditOpen = false;
+    this.demoCenterOpen = true;
+  }
+
+  onToggleOperationsAudit(): void {
+    if (this.operationsAuditOpen) {
+      this.operationsAuditOpen = false;
+      return;
+    }
+    this.demoCenterOpen = false;
+    this.operationsAuditOpen = true;
+  }
+
+  onOpenOperationsAudit(): void {
+    this.demoCenterOpen = false;
+    this.operationsAuditOpen = true;
+  }
+
+  onCloseOperationsAudit(): void {
+    this.operationsAuditOpen = false;
   }
 
   onCloseDemoCenter(): void {

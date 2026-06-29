@@ -10,15 +10,8 @@
   pointer-events: auto;
 }
 
-:host(.demo-center--audit) {
-  left: 0.75rem;
-  right: 0.75rem;
-  width: auto;
-  max-width: none;
-}
-
 @media (max-width: 520px) {
-  :host:not(.demo-center--audit) {
+  :host {
     width: calc(100% - 1.5rem);
   }
 }

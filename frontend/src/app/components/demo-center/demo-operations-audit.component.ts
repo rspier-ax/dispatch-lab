@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Courier, PlatformFeedItem } from '../../services/dispatch/types';
 import { formatEta, formatTime } from '../../lib/dispatch-view.utils';
 import {
@@ -24,8 +24,6 @@ import {
   styleUrl: './demo-operations-audit.component.scss',
 })
 export class DemoOperationsAuditComponent {
-  @ViewChild('agendaSection') agendaSection?: ElementRef<HTMLElement>;
-
   @Input({ required: true }) scheduleRows: ScheduleRow[] = [];
   @Input({ required: true }) queuedRows: QueuedDeliveryRow[] = [];
   @Input({ required: true }) platformFeed: PlatformFeedItem[] = [];
@@ -82,9 +80,7 @@ export class DemoOperationsAuditComponent {
   }
 
   scrollToAgenda(): void {
-    requestAnimationFrame(() => {
-      this.agendaSection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    // no-op: full audit uses single-column scroll on .audit-stack
   }
 
   onFocusCourier(courierId: string): void {

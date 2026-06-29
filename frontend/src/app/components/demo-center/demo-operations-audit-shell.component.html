@@ -1,0 +1,24 @@
+@if (open) {
+  <aside class="audit-shell" role="dialog" aria-labelledby="audit-shell-title" aria-modal="true">
+    <header class="audit-shell__header">
+      <div class="audit-shell__header-text">
+        <span class="audit-shell__live">Ao vivo</span>
+        <h2 id="audit-shell-title" class="audit-shell__title">Eventos operacionais</h2>
+        <p class="audit-shell__subtitle">Agenda, fila e histórico completo</p>
+      </div>
+      <button type="button" class="audit-shell__close" aria-label="Fechar" (click)="onClose()">×</button>
+    </header>
+    <div class="audit-shell__body">
+      <app-demo-operations-audit
+        [scheduleRows]="scheduleRows"
+        [queuedRows]="queuedRows"
+        [platformFeed]="platformFeed"
+        [couriers]="couriers"
+        [tick]="tick"
+        [elapsedLabel]="elapsedLabel"
+        [scenarioLock]="scenarioLock"
+        (focusCourier)="onFocusCourier($event)"
+      />
+    </div>
+  </aside>
+}

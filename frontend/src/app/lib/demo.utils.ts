@@ -186,6 +186,10 @@ export function scheduleStatusLabel(status: ScheduleRowStatus): string {
   return 'Aguardando';
 }
 
+export function recentPlatformFeed(feed: PlatformFeedItem[], limit = 5): PlatformFeedItem[] {
+  return [...feed].reverse().slice(0, limit);
+}
+
 export function partitionScheduleRows(rows: ScheduleRow[]): {
   upcoming: ScheduleRow[];
   done: ScheduleRow[];

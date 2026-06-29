@@ -169,15 +169,13 @@
 
         @case ('events') {
           <section class="demo-center__section demo-center__section--events">
-            <app-demo-operations-audit
+            <app-demo-events-summary
               [scheduleRows]="scheduleRows"
               [queuedRows]="queuedRows"
               [platformFeed]="platformFeed"
-              [couriers]="couriers"
-              [tick]="tick"
-              [elapsedLabel]="elapsedLabel"
               [scenarioLock]="scenarioLock"
               (focusCourier)="onFocusCourier($event)"
+              (openFullAudit)="onOpenFullAudit()"
             />
           </section>
         }

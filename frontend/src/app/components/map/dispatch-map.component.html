@@ -14,6 +14,15 @@
     <button
       type="button"
       class="map-btn map-btn--primary"
+      [class.map-btn--active]="operationsAuditOpen"
+      [attr.aria-pressed]="operationsAuditOpen"
+      (click)="toggleOperationsAudit.emit()"
+    >
+      Eventos operacionais
+    </button>
+    <button
+      type="button"
+      class="map-btn map-btn--primary"
       [class.map-btn--active]="demoCenterOpen"
       [attr.aria-pressed]="demoCenterOpen"
       (click)="toggleDemoCenter.emit()"
@@ -68,6 +77,20 @@
     (closed)="demoClosed.emit()"
     (applyScenario)="demoApplyScenario.emit($event)"
     (focusCourier)="demoFocusCourier.emit($event)"
+    (openFullAudit)="openOperationsAudit.emit()"
     (mapPrefsChange)="demoMapPrefsChange.emit($event)"
+  />
+
+  <app-demo-operations-audit-shell
+    [open]="operationsAuditOpen"
+    [demoInfo]="demoInfo"
+    [tick]="demoTick"
+    [platformFeed]="demoPlatformFeed"
+    [upcomingScripts]="demoUpcomingScripts"
+    [tickIntervalMs]="demoTickIntervalMs"
+    [deliveries]="demoDeliveries"
+    [couriers]="couriers"
+    (closed)="operationsAuditClosed.emit()"
+    (focusCourier)="demoFocusCourier.emit($event)"
   />
 </div>
