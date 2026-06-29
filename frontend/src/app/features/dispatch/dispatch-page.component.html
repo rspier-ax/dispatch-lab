@@ -38,7 +38,10 @@
           [demoCenterOpen]="demoCenterOpen"
           [demoInfo]="demoInfo"
           [demoTick]="simTick"
-          [demoEvents]="streamEvents"
+          [demoPlatformFeed]="streamPlatformFeed"
+          [demoUpcomingScripts]="upcomingScripts"
+          [demoTickIntervalMs]="tickIntervalMs"
+          [demoDeliveries]="deliveries"
           [demoMapPrefs]="demoMapPrefs"
           [refreshDemo]="refreshDemo"
           [reloadDemoInfo]="reloadDemoInfo"
@@ -47,6 +50,7 @@
           (toggleDemoCenter)="onToggleDemoCenter()"
           (demoClosed)="onCloseDemoCenter()"
           (demoApplyScenario)="onScenarioApplied($event)"
+          (demoFocusCourier)="onSelect($event)"
           (demoMapPrefsChange)="onDemoMapPrefsChange($event)"
         />
         <div class="dispatch-detail-column">

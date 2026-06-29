@@ -1,18 +1,24 @@
 import {
+  buildQueuedDeliveryRows,
+  buildScheduleRows,
   demoElapsedLabel,
   demoScenarioLock,
   demoScenarioModeBanner,
   demoScenarios,
   demoSessionStatusLabel,
   filterDemoEvents,
+  filterPlatformFeed,
   eventTypeBadge,
   groupEventsByRecency,
+  groupPlatformFeedByRecency,
   isScenarioBlocked,
+  platformFeedBadge,
+  platformFeedTitle,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
 } from './demo.utils';
 import { FALLBACK_DEMO_INFO } from './demo.constants';
-import { DeliveryEventPayload } from '../services/dispatch/types';
+import { Courier, DeliveryEventPayload, PlatformFeedItem } from '../services/dispatch/types';
 
 describe('demo.utils', () => {
   it('falls back to guided scenarios when demo info is null', () => {
@@ -151,5 +157,94 @@ describe('demo.utils', () => {
     });
     expect(banner.heading).toContain('Surpresa de rede');
     expect(banner.detail).toContain('2 evento(s) restante(s)');
+  });
+
+  it('builds schedule rows with done, next and pending', () => {
+    const rows = buildScheduleRows(
+      [
+        { courier_id: 'POA-01', tick: 5, action: 'go_stale' },
+        { courier_id: 'POA-07', tick: 20, action: 'reconnect' },
+        { courier_id: 'POA-03', tick: 25, action: 'go_stale' },
+      ],
+      10,
+      1000,
+    );
+    expect(rows).toHaveSize(3);
+    expect(rows[0].status).toBe('done');
+    expect(rows[1].status).toBe('next');
+    expect(rows[1].etaSeconds).toBe(10);
+    expect(rows[2].status).toBe('pending');
+  });
+
+  it('uses live upcoming scripts in session status label', () => {
+    const label = demoSessionStatusLabel(FALLBACK_DEMO_INFO, 10, [
+      { courier_id: 'POA-99', tick: 15, action: 'go_stale' },
+    ]);
+    expect(label).toContain('POA-99');
+    expect(label).toContain('~5s');
+  });
+
+  it('derives remaining lock events from upcoming scripts', () => {
+    const lock = demoScenarioLock(
+      {
+        ...FALLBACK_DEMO_INFO,
+        scenario_lock: {
+          active_id: 'network_surprise',
+          until_tick: 80,
+          remaining_events: 99,
+        },
+      },
+      10,
+      [
+        { courier_id: 'POA-01', tick: 20, action: 'go_stale' },
+        { courier_id: 'POA-07', tick: 30, action: 'reconnect' },
+      ],
+    );
+    expect(lock.remainingEvents).toBe(2);
+  });
+
+  it('builds queued delivery rows', () => {
+    const couriers = [
+      {
+        id: 'POA-01',
+        name: 'Ana',
+        delivery_id: 'DEL-002',
+      },
+    ] as Courier[];
+    const deliveries = [
+      {
+        id: 'DEL-001',
+        courier_id: 'POA-01',
+        courier_name: 'Ana',
+        restaurant: 'Sushi',
+        eta_seconds: 300,
+      },
+    ] as Parameters<typeof buildQueuedDeliveryRows>[0];
+    const rows = buildQueuedDeliveryRows(deliveries, couriers);
+    expect(rows).toHaveSize(1);
+    expect(rows[0].deliveryId).toBe('DEL-001');
+    expect(rows[0].restaurant).toBe('Sushi');
+  });
+
+  it('filters and groups platform feed', () => {
+    const feed: PlatformFeedItem[] = [
+      {
+        kind: 'delivery_event',
+        courier_id: 'POA-01',
+        type: 'went_stale',
+        message: 'Sinal atrasado',
+        timestamp: '2026-01-01T10:00:00Z',
+      },
+      {
+        kind: 'tracking_change',
+        courier_id: 'POA-07',
+        tracking_state: 'live',
+        timestamp: '2026-01-01T10:01:00Z',
+      },
+    ];
+    expect(filterPlatformFeed(feed, 'POA-07')).toHaveSize(1);
+    expect(platformFeedBadge(feed[1]).tone).toBe('live');
+    expect(platformFeedTitle(feed[1])).toBe('Sinal ao vivo');
+    expect(groupPlatformFeedByRecency(feed)).toHaveSize(1);
   });
 });

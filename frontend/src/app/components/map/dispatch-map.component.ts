@@ -11,7 +11,7 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import * as L from 'leaflet';
-import { Courier, DeliveryEventPayload, DemoInfo, Landmark, MapBounds, ScenarioApplyResult, TrackingState } from '../../services/dispatch/types';
+import { Courier, Delivery, DemoInfo, Landmark, MapBounds, PlatformFeedItem, ScenarioApplyResult, ScriptAction, TrackingState } from '../../services/dispatch/types';
 import {
   courierMatchesFilter,
   formatBbox,
@@ -50,7 +50,10 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() demoCenterOpen = false;
   @Input() demoInfo: DemoInfo | null = null;
   @Input() demoTick = 0;
-  @Input() demoEvents: DeliveryEventPayload[] = [];
+  @Input() demoPlatformFeed: PlatformFeedItem[] = [];
+  @Input() demoUpcomingScripts: ScriptAction[] = [];
+  @Input() demoTickIntervalMs = 1000;
+  @Input() demoDeliveries: Delivery[] = [];
   @Input() demoMapPrefs: DemoMapPrefs = {
     showBoundsOverlay: false,
     showRoutePolyline: true,
@@ -63,6 +66,7 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Output() toggleDemoCenter = new EventEmitter<void>();
   @Output() demoClosed = new EventEmitter<void>();
   @Output() demoApplyScenario = new EventEmitter<ScenarioApplyResult>();
+  @Output() demoFocusCourier = new EventEmitter<string>();
   @Output() demoMapPrefsChange = new EventEmitter<DemoMapPrefs>();
 
   readonly filterOptions: { value: TrackingFilter; label: string }[] = [

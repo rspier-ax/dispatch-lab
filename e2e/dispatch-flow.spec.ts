@@ -98,5 +98,12 @@ test.describe('DispatchLab operator flow', () => {
       demoPanelAfterReset.getByRole('button', { name: 'Forçar sinal atrasado' }),
     ).toBeDisabled();
     await expect(demoPanelAfterReset.getByRole('button', { name: 'Reconectar' })).toBeDisabled();
+
+    await demoPanelAfterReset.getByRole('tab', { name: 'Eventos' }).click();
+    await expect(demoPanelAfterReset.getByRole('heading', { name: 'Agenda' })).toBeVisible();
+    await expect(demoPanelAfterReset.locator('.demo-center__schedule-row')).toHaveCount(2, {
+      timeout: 10_000,
+    });
+    await expect(demoPanelAfterReset.getByText('Próximo', { exact: true })).toBeVisible();
   });
 });

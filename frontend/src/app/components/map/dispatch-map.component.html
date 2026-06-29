@@ -56,7 +56,10 @@
     [open]="demoCenterOpen"
     [demoInfo]="demoInfo"
     [tick]="demoTick"
-    [events]="demoEvents"
+    [platformFeed]="demoPlatformFeed"
+    [upcomingScripts]="demoUpcomingScripts"
+    [tickIntervalMs]="demoTickIntervalMs"
+    [deliveries]="demoDeliveries"
     [couriers]="couriers"
     [selectedCourierId]="selectedId"
     [mapPrefs]="demoMapPrefs"
@@ -64,6 +67,7 @@
     [reloadDemoInfo]="reloadDemoInfo"
     (closed)="demoClosed.emit()"
     (applyScenario)="demoApplyScenario.emit($event)"
+    (focusCourier)="demoFocusCourier.emit($event)"
     (mapPrefsChange)="demoMapPrefsChange.emit($event)"
   />
 </div>

@@ -13,10 +13,11 @@ import {
   Courier,
   CourierDetail,
   Delivery,
-  DeliveryEventPayload,
   DemoInfo,
   Landmark,
+  PlatformFeedItem,
   ScenarioApplyResult,
+  ScriptAction,
 } from '../../services/dispatch/types';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -53,7 +54,9 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   reconnectNotice = false;
   demoInfo: DemoInfo | null = null;
   simTick = 0;
-  streamEvents: DeliveryEventPayload[] = [];
+  streamPlatformFeed: PlatformFeedItem[] = [];
+  upcomingScripts: ScriptAction[] = [];
+  tickIntervalMs = 1000;
   demoCenterOpen = false;
   demoMapPrefs: DemoMapPrefs = { ...DEFAULT_DEMO_MAP_PREFS };
   demoResetting = signal(false);
@@ -75,6 +78,7 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
       this.landmarks = this.facade.snapshot()?.landmarks ?? [];
       await this.loadDemoInfo();
       this.simTick = this.demoInfo?.tick ?? 0;
+      this.syncStreamScripts();
     } finally {
       const remaining = DEMO_RESET_MIN_MS - (Date.now() - startedAt);
       if (remaining > 0) {
@@ -87,6 +91,7 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   readonly reloadDemoInfo = async (): Promise<void> => {
     await this.loadDemoInfo();
     this.simTick = this.demoInfo?.tick ?? this.simTick;
+    this.syncStreamScripts();
   };
 
   constructor(
@@ -110,13 +115,16 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
     this.landmarks = this.facade.snapshot()?.landmarks ?? [];
     await this.loadDemoInfo();
     this.simTick = this.demoInfo?.tick ?? 0;
+    this.syncStreamScripts();
 
     this.sub = this.stream.state$.subscribe((state) => {
       this.couriers = this.facade.couriersFromState(state.couriers);
       this.deliveries = this.facade.deliveriesFromState(state.deliveries);
       this.metrics = courierMetrics(this.couriers);
       this.simTick = state.tick;
-      this.streamEvents = state.timeline;
+      this.streamPlatformFeed = state.platformFeed;
+      this.upcomingScripts = state.upcomingScripts;
+      this.tickIntervalMs = state.tickIntervalMs;
       this.syncDetail();
     });
 
@@ -133,7 +141,7 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
           }
         }
         if (type === 'delivery_event' && this.facade.selectedCourierId()) {
-          const ev = data as DeliveryEventPayload;
+          const ev = data as { courier_id: string };
           if (ev.courier_id === this.facade.selectedCourierId()) {
             this.facade.refreshCourierDetail(ev.courier_id);
           }
@@ -166,6 +174,11 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
   }
 
   onScenarioApplied(result: ScenarioApplyResult): void {
+    if (result.scripts?.length) {
+      this.stream.seedUpcomingScripts(result.scripts);
+    } else {
+      this.syncStreamScripts();
+    }
     if (result.queue_focus) {
       this.deliveryPhaseFilterOverride.set('queued');
     }
@@ -210,6 +223,12 @@ export class DispatchPageComponent implements OnInit, OnDestroy {
           void this.loadDemoInfo();
         }, 3000);
       }
+    }
+  }
+
+  private syncStreamScripts(): void {
+    if (this.demoInfo?.scripts?.length) {
+      this.stream.seedUpcomingScripts(this.demoInfo.scripts);
     }
   }
 

@@ -19,7 +19,16 @@
         <span class="demo-center__status-elapsed">Tempo de operação · {{ elapsedLabel }}</span>
         <span class="mono demo-center__tick">tick {{ tick }}</span>
       </div>
-      <p class="demo-center__next">{{ sessionStatusLabel }}</p>
+      <p
+        class="demo-center__next"
+        [class.demo-center__next--clickable]="hasScheduledEvents"
+        [attr.role]="hasScheduledEvents ? 'button' : null"
+        [attr.tabindex]="hasScheduledEvents ? 0 : null"
+        (click)="onStatusStripClick()"
+        (keydown.enter)="onStatusStripClick()"
+      >
+        {{ sessionStatusLabel }}
+      </p>
     </div>
 
     <div class="demo-center__tabs" role="tablist" aria-label="Seções da Central da Demo">
@@ -156,47 +165,133 @@
 
         @case ('events') {
           <section class="demo-center__section demo-center__section--events">
-            <h3>Eventos recentes</h3>
-            <label class="demo-center__field">
-              <span>Filtrar por entregador</span>
-              <select
-                [value]="eventCourierFilter ?? ''"
-                (change)="eventCourierFilter = $any($event.target).value || null"
-              >
-                <option value="">Todos</option>
-                @for (c of couriers; track c.id) {
-                  <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
-                }
-              </select>
-            </label>
-
-            <div class="demo-center__events-feed">
-              @if (filteredEvents().length === 0) {
-                <p class="demo-center__empty demo-center__empty--feed">Aguardando eventos do stream…</p>
-              } @else {
-                @for (group of eventGroups(); track group.label) {
-                  <div class="demo-center__event-group">
-                    <h4>{{ group.label }}</h4>
-                    <ul class="demo-center__event-cards">
-                      @for (ev of group.items; track ev.timestamp + ev.type + ev.courier_id) {
-                        <li class="demo-center__event-card">
-                          <div class="demo-center__event-card-head">
-                            <span
-                              class="demo-center__event-badge demo-center__event-badge--{{ eventBadge(ev.type).tone }}"
-                            >
-                              {{ eventBadge(ev.type).label }}
-                            </span>
-                            <time class="mono demo-center__event-time">{{ formatTime(ev.timestamp) }}</time>
-                          </div>
-                          <p class="demo-center__event-card-title">
-                            <strong>{{ ev.courier_id }}</strong> — {{ eventTitle(ev) }}
-                          </p>
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
+            <div class="demo-center__ops-summary" aria-live="polite">
+              <span>Tempo · {{ elapsedLabel }}</span>
+              <span>{{ scheduleRows.length }} na agenda</span>
+              <span>{{ queuedRows.length }} na fila</span>
+              @if (scenarioLock.locked) {
+                <span class="demo-center__ops-lock">{{ scenarioLock.remainingEvents }} evento(s) do cenário</span>
               }
+            </div>
+
+            <div #agendaSection class="demo-center__events-block">
+              <h3>Agenda</h3>
+              @if (scheduleRows.length === 0) {
+                <p class="demo-center__empty">Sem eventos agendados</p>
+              } @else {
+                <ul class="demo-center__schedule">
+                  @for (row of scheduleRows; track row.tick + row.courierId) {
+                    <li
+                      class="demo-center__schedule-row"
+                      [class.demo-center__schedule-row--next]="row.status === 'next'"
+                      [class.demo-center__schedule-row--done]="row.status === 'done'"
+                    >
+                      <span
+                        class="demo-center__schedule-badge demo-center__schedule-badge--{{ row.status }}"
+                      >
+                        {{ scheduleStatusLabel(row.status) }}
+                      </span>
+                      <span class="mono demo-center__schedule-tick">tick {{ row.tick }}</span>
+                      @if (row.status !== 'done') {
+                        <span class="demo-center__schedule-eta">~{{ row.etaSeconds | number: '1.0-0' }}s</span>
+                      }
+                      <button
+                        type="button"
+                        class="demo-center__schedule-courier"
+                        (click)="onFocusCourier(row.courierId)"
+                      >
+                        {{ row.courierId }}
+                      </button>
+                      <span class="demo-center__schedule-action">{{ row.actionLabel }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+
+            <div class="demo-center__events-block">
+              <h3>Fila na operação</h3>
+              @if (queuedRows.length === 0) {
+                <p class="demo-center__empty">Nenhuma entrega aguardando rota</p>
+              } @else {
+                <ul class="demo-center__queue">
+                  @for (row of queuedRows; track row.deliveryId) {
+                    <li class="demo-center__queue-row">
+                      <button
+                        type="button"
+                        class="demo-center__queue-courier"
+                        (click)="onFocusCourier(row.courierId)"
+                      >
+                        <strong>{{ row.courierId }}</strong> · {{ row.courierName }}
+                      </button>
+                      <span class="demo-center__queue-meta">
+                        {{ row.deliveryId }} · {{ row.restaurant }}
+                        @if (row.etaSeconds > 0) {
+                          · ETA {{ formatEta(row.etaSeconds) }}
+                        }
+                      </span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+
+            <div class="demo-center__events-block demo-center__events-block--feed">
+              <h3>Histórico ao vivo</h3>
+              <label class="demo-center__field">
+                <span>Filtrar por entregador</span>
+                <select
+                  [value]="eventCourierFilter ?? ''"
+                  (change)="eventCourierFilter = $any($event.target).value || null"
+                >
+                  <option value="">Todos</option>
+                  @for (c of couriers; track c.id) {
+                    <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
+                  }
+                </select>
+              </label>
+
+              <div class="demo-center__events-feed">
+                @if (filteredFeed().length === 0) {
+                  <p class="demo-center__empty demo-center__empty--feed">Aguardando eventos do stream…</p>
+                } @else {
+                  @for (group of feedGroups(); track group.label) {
+                    <div class="demo-center__event-group">
+                      <h4>{{ group.label }}</h4>
+                      <ul class="demo-center__event-cards">
+                        @for (item of group.items; track feedTrackKey(item)) {
+                          <li class="demo-center__event-card">
+                            <div class="demo-center__event-card-head">
+                              <span
+                                class="demo-center__event-badge demo-center__event-badge--{{ feedBadge(item).tone }}"
+                              >
+                                {{ feedBadge(item).label }}
+                              </span>
+                              <time class="mono demo-center__event-time">{{ formatTime(item.timestamp) }}</time>
+                            </div>
+                            <p class="demo-center__event-card-title">
+                              <button
+                                type="button"
+                                class="demo-center__event-courier-link"
+                                (click)="onFocusCourier(item.courier_id)"
+                              >
+                                {{ item.courier_id }}
+                              </button>
+                              — {{ feedTitle(item) }}
+                            </p>
+                            @if (feedDeliveryId(item); as deliveryId) {
+                              <p class="demo-center__event-card-meta mono">{{ deliveryId }}</p>
+                            }
+                            @if (feedMessage(item); as message) {
+                              <p class="demo-center__event-card-desc">{{ message }}</p>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
+              </div>
             </div>
           </section>
         }

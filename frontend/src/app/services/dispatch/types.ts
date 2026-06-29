@@ -104,6 +104,15 @@ export interface DeliveryEventPayload {
   timestamp: string;
 }
 
+export type PlatformFeedItem =
+  | ({ kind: 'delivery_event' } & DeliveryEventPayload)
+  | {
+      kind: 'tracking_change';
+      courier_id: string;
+      tracking_state: TrackingState;
+      timestamp: string;
+    };
+
 export interface ScriptAction {
   courier_id: string;
   tick: number;
