@@ -161,8 +161,15 @@
 }
 
 .demo-center__tab-panel--events {
-  overflow: visible;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   gap: 0;
+}
+
+.demo-center__section--events {
+  flex: 1;
+  min-height: 0;
+  gap: 0.625rem;
 }
 
 .demo-center__section--fill {
@@ -184,12 +191,6 @@
 .demo-center__playback {
   min-width: 0;
   max-width: 100%;
-}
-
-.demo-center__section--events {
-  flex: 1;
-  min-height: 0;
-  gap: 0.625rem;
 }
 
 .demo-center__selectors {
@@ -391,6 +392,175 @@
   font-size: 0.625rem;
   color: var(--text-muted);
   overflow-wrap: break-word;
+}
+
+.demo-center__next--clickable {
+  cursor: pointer;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.demo-center__next--clickable:hover {
+  color: var(--text-secondary);
+}
+
+.demo-center__ops-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.625rem;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.375rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+.demo-center__ops-lock {
+  color: var(--stale-dark);
+  font-weight: 600;
+}
+
+.demo-center__events-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-center__events-block--feed {
+  flex: 1;
+  min-height: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.demo-center__schedule,
+.demo-center__queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.375rem;
+}
+
+.demo-center__schedule-row {
+  display: grid;
+  grid-template-columns: auto auto auto auto 1fr;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  font-size: 0.6875rem;
+  min-width: 0;
+}
+
+.demo-center__schedule-row--next {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.demo-center__schedule-row--done {
+  opacity: 0.55;
+}
+
+.demo-center__schedule-badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.demo-center__schedule-badge--done {
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+
+.demo-center__schedule-badge--next {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.demo-center__schedule-badge--pending {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+.demo-center__schedule-tick,
+.demo-center__schedule-eta {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+.demo-center__schedule-courier,
+.demo-center__queue-courier,
+.demo-center__event-courier-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+
+.demo-center__schedule-courier:hover,
+.demo-center__queue-courier:hover,
+.demo-center__event-courier-link:hover {
+  text-decoration: underline;
+}
+
+.demo-center__schedule-action {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}
+
+.demo-center__queue-row {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  min-width: 0;
+}
+
+.demo-center__queue-meta {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.demo-center__event-card-meta,
+.demo-center__event-card-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.demo-center__event-card-desc {
+  font-style: normal;
+}
+
+@media (max-width: 520px) {
+  .demo-center__schedule-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .demo-center__schedule-action {
+    grid-column: 1 / -1;
+  }
 }
 
 .demo-center__progress {

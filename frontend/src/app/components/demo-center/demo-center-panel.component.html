@@ -1,5 +1,9 @@
 @if (open) {
-  <aside class="demo-center" role="complementary" aria-labelledby="demo-center-title">
+  <aside
+    class="demo-center"
+    role="complementary"
+    aria-labelledby="demo-center-title"
+  >
     <header class="demo-center__header">
       <div class="demo-center__header-text">
         <div class="demo-center__title-row">
@@ -19,7 +23,16 @@
         <span class="demo-center__status-elapsed">Tempo de operação · {{ elapsedLabel }}</span>
         <span class="mono demo-center__tick">tick {{ tick }}</span>
       </div>
-      <p class="demo-center__next">{{ sessionStatusLabel }}</p>
+      <p
+        class="demo-center__next"
+        [class.demo-center__next--clickable]="hasScheduledEvents"
+        [attr.role]="hasScheduledEvents ? 'button' : null"
+        [attr.tabindex]="hasScheduledEvents ? 0 : null"
+        (click)="onStatusStripClick()"
+        (keydown.enter)="onStatusStripClick()"
+      >
+        {{ sessionStatusLabel }}
+      </p>
     </div>
 
     <div class="demo-center__tabs" role="tablist" aria-label="Seções da Central da Demo">
@@ -156,48 +169,14 @@
 
         @case ('events') {
           <section class="demo-center__section demo-center__section--events">
-            <h3>Eventos recentes</h3>
-            <label class="demo-center__field">
-              <span>Filtrar por entregador</span>
-              <select
-                [value]="eventCourierFilter ?? ''"
-                (change)="eventCourierFilter = $any($event.target).value || null"
-              >
-                <option value="">Todos</option>
-                @for (c of couriers; track c.id) {
-                  <option [value]="c.id">{{ c.id }} · {{ c.name }}</option>
-                }
-              </select>
-            </label>
-
-            <div class="demo-center__events-feed">
-              @if (filteredEvents().length === 0) {
-                <p class="demo-center__empty demo-center__empty--feed">Aguardando eventos do stream…</p>
-              } @else {
-                @for (group of eventGroups(); track group.label) {
-                  <div class="demo-center__event-group">
-                    <h4>{{ group.label }}</h4>
-                    <ul class="demo-center__event-cards">
-                      @for (ev of group.items; track ev.timestamp + ev.type + ev.courier_id) {
-                        <li class="demo-center__event-card">
-                          <div class="demo-center__event-card-head">
-                            <span
-                              class="demo-center__event-badge demo-center__event-badge--{{ eventBadge(ev.type).tone }}"
-                            >
-                              {{ eventBadge(ev.type).label }}
-                            </span>
-                            <time class="mono demo-center__event-time">{{ formatTime(ev.timestamp) }}</time>
-                          </div>
-                          <p class="demo-center__event-card-title">
-                            <strong>{{ ev.courier_id }}</strong> — {{ eventTitle(ev) }}
-                          </p>
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-              }
-            </div>
+            <app-demo-events-summary
+              [scheduleRows]="scheduleRows"
+              [queuedRows]="queuedRows"
+              [platformFeed]="platformFeed"
+              [scenarioLock]="scenarioLock"
+              (focusCourier)="onFocusCourier($event)"
+              (openFullAudit)="onOpenFullAudit()"
+            />
           </section>
         }
       }

@@ -1,0 +1,59 @@
+<section class="events-summary" aria-label="Resumo de eventos">
+  <div class="events-summary__stats" aria-live="polite">
+    <span class="events-summary__chip">{{ upcomingCount }} na agenda</span>
+    <span class="events-summary__chip">{{ queuedRows.length }} na fila</span>
+    <span
+      class="events-summary__chip"
+      [class.events-summary__chip--locked]="scenarioLock.locked"
+    >
+      {{ scenarioLabel }}
+    </span>
+  </div>
+
+  @if (nextEvent; as next) {
+    <article class="events-summary__next">
+      <span class="events-summary__next-label">Próximo evento</span>
+      <p class="events-summary__next-body">
+        <button type="button" class="events-summary__link" (click)="onFocusCourier(next.courierId)">
+          {{ next.courierId }}
+        </button>
+        · {{ next.actionLabel }} em ~{{ next.etaSeconds | number: '1.0-0' }}s
+        <span class="mono events-summary__tick">tick {{ next.tick }}</span>
+      </p>
+    </article>
+  } @else {
+    <p class="events-summary__empty">Sem eventos agendados</p>
+  }
+
+  <div class="events-summary__recent">
+    <h3>Últimos eventos</h3>
+    @if (recentFeed.length === 0) {
+      <p class="events-summary__empty">Aguardando eventos do stream…</p>
+    } @else {
+      <ul class="events-summary__feed">
+        @for (item of recentFeed; track feedTrackKey(item)) {
+          <li class="events-summary__feed-item">
+            <div class="events-summary__feed-head">
+              <span
+                class="events-summary__badge events-summary__badge--{{ feedBadge(item).tone }}"
+              >
+                {{ feedBadge(item).label }}
+              </span>
+              <time class="mono">{{ formatTime(item.timestamp) }}</time>
+            </div>
+            <p class="events-summary__feed-title">
+              <button type="button" class="events-summary__link" (click)="onFocusCourier(item.courier_id)">
+                {{ item.courier_id }}
+              </button>
+              — {{ feedTitle(item) }}
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <button type="button" class="events-summary__cta" (click)="onOpenFullAudit()">
+    Ver auditoria completa
+  </button>
+</section>

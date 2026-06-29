@@ -8,15 +8,20 @@ import {
   DeliveryEventPayload,
   DeliveryStatus,
   ETAUpdate,
+  PlatformFeedItem,
   PositionUpdate,
+  ScriptAction,
   TickUpdate,
   TrackingStateChange,
 } from './types';
 
+const PLATFORM_FEED_MAX = 50;
+
 export interface StreamState {
   couriers: Map<string, Courier>;
   deliveries: Map<string, Delivery>;
-  timeline: DeliveryEventPayload[];
+  platformFeed: PlatformFeedItem[];
+  upcomingScripts: ScriptAction[];
   tick: number;
   tickIntervalMs: number;
 }
@@ -28,7 +33,8 @@ export class DispatchStreamService implements OnDestroy {
   private readonly stateSubject = new BehaviorSubject<StreamState>({
     couriers: new Map(),
     deliveries: new Map(),
-    timeline: [],
+    platformFeed: [],
+    upcomingScripts: [],
     tick: 0,
     tickIntervalMs: 1000,
   });
@@ -44,7 +50,8 @@ export class DispatchStreamService implements OnDestroy {
     const state: StreamState = {
       couriers: new Map(initialCouriers.map((c) => [c.id, { ...c }])),
       deliveries: new Map(initialDeliveries.map((d) => [d.id, { ...d }])),
-      timeline: [],
+      platformFeed: [],
+      upcomingScripts: [],
       tick: 0,
       tickIntervalMs: 1000,
     };
@@ -85,6 +92,15 @@ export class DispatchStreamService implements OnDestroy {
     });
   }
 
+  /** Seeds upcoming scripts from demo info or scenario apply (before first tick_update). */
+  seedUpcomingScripts(allScripts: ScriptAction[]): void {
+    const current = this.stateSubject.value;
+    const upcoming = allScripts
+      .filter((s) => s.tick > current.tick)
+      .sort((a, b) => a.tick - b.tick || a.courier_id.localeCompare(b.courier_id));
+    this.stateSubject.next({ ...current, upcomingScripts: upcoming });
+  }
+
   disconnect(): void {
     if (this.source) {
       this.source.close();
@@ -114,7 +130,8 @@ export class DispatchStreamService implements OnDestroy {
     const current = this.stateSubject.value;
     const couriers = new Map(current.couriers);
     const deliveries = new Map(current.deliveries);
-    let timeline = [...current.timeline];
+    let platformFeed = [...current.platformFeed];
+    let upcomingScripts = current.upcomingScripts;
     let tick = current.tick;
     let tickIntervalMs = current.tickIntervalMs;
 
@@ -140,6 +157,15 @@ export class DispatchStreamService implements OnDestroy {
           last_seen_at: ch.last_seen_at,
         });
       }
+      platformFeed = [
+        ...platformFeed,
+        {
+          kind: 'tracking_change' as const,
+          courier_id: ch.courier_id,
+          tracking_state: ch.tracking_state,
+          timestamp: ch.last_seen_at,
+        },
+      ].slice(-PLATFORM_FEED_MAX);
     }
 
     if (type === 'eta_update') {
@@ -156,7 +182,9 @@ export class DispatchStreamService implements OnDestroy {
 
     if (type === 'delivery_event') {
       const ev = data as DeliveryEventPayload;
-      timeline = [...timeline, ev].slice(-50);
+      platformFeed = [...platformFeed, { kind: 'delivery_event' as const, ...ev }].slice(
+        -PLATFORM_FEED_MAX,
+      );
       if (ev.delivery_id && ev.status) {
         const d = deliveries.get(ev.delivery_id);
         if (d) {
@@ -169,8 +197,18 @@ export class DispatchStreamService implements OnDestroy {
       const t = data as TickUpdate;
       tick = t.tick;
       tickIntervalMs = t.interval_ms;
+      if (t.next_scripts !== undefined) {
+        upcomingScripts = t.next_scripts;
+      }
     }
 
-    this.stateSubject.next({ couriers, deliveries, timeline, tick, tickIntervalMs });
+    this.stateSubject.next({
+      couriers,
+      deliveries,
+      platformFeed,
+      upcomingScripts,
+      tick,
+      tickIntervalMs,
+    });
   }
 }

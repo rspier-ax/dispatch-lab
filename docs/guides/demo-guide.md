@@ -34,7 +34,21 @@ Step-by-step walkthrough for the DispatchLab operator console demo. UI labels be
 
 ### Eventos (Events)
 
-- Structured SSE event feed with a per-courier filter.
+Compact summary inside the demo center (panel stays 480px wide):
+
+- Mini stats: scheduled agenda count, queue count, and scenario lock / live mode.
+- **Próximo evento** card for the next scripted action (courier, action, ETA).
+- **Últimos eventos** — up to five recent SSE items as stacked cards (badge, time, title; courier is clickable).
+- **Ver auditoria completa** opens the full audit workspace on the map (see below).
+
+Clicking the status strip (when events are scheduled) switches to this tab without opening the full overlay.
+
+### Eventos operacionais (map overlay)
+
+- Map button **Eventos operacionais** (top-left, next to **Central da demo**) opens a full-width overlay between the map controls and legend.
+- KPI strip plus stacked sections: **Agenda**, **Fila na operação**, **Histórico ao vivo** (single column, scroll per section).
+- Close with **×** or toggle the map button again.
+- Only one of **Central da demo** or **Eventos operacionais** is open at a time; **Ver auditoria completa** closes the center and opens the overlay.
 
 ### Reset
 
@@ -58,6 +72,8 @@ Quick actions (force stale / reconnect) apply immediately without confirmation w
 ### Map controls
 
 - **Enquadrar mapa** (top-left of map) fits the viewport to the scenario bounds.
+- **Eventos operacionais** — full operations audit overlay (agenda, queue, live history).
+- **Central da demo** — docked demo center panel; mutually exclusive with **Eventos operacionais**.
 
 - Scenario bbox and demo version appear as a discrete overlay at the bottom of the map (no fixed footer).
 

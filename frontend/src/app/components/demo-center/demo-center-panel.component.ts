@@ -1,13 +1,22 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  inject,
+} from '@angular/core';
 import {
   Courier,
-  DeliveryEventPayload,
+  Delivery,
   DemoInfo,
   DemoScenario,
+  PlatformFeedItem,
   ScenarioApplyResult,
+  ScriptAction,
 } from '../../services/dispatch/types';
 import { DemoActionKind, DemoActionPreview } from '../../lib/demo-action.types';
-import { timelineDisplay, formatTime } from '../../lib/dispatch-view.utils';
 import {
   DEMO_CONTROLS_TOOLTIP,
   DemoMapPrefs,
@@ -16,14 +25,13 @@ import {
 import { LOADING_LABELS } from '../../lib/loading-labels';
 import {
   DemoPanelTab,
+  buildQueuedDeliveryRows,
+  buildScheduleRows,
   demoElapsedLabel,
   demoScenarioLock,
   demoScenarioModeBanner,
   demoScenarios,
   demoSessionStatusLabel,
-  eventTypeBadge,
-  filterDemoEvents,
-  groupEventsByRecency,
   isScenarioBlocked,
   toActionPreviewFromReset,
   toActionPreviewFromScenario,
@@ -31,6 +39,7 @@ import {
 import { HttpDispatchProvider } from '../../services/dispatch/http-dispatch.provider';
 import { ToastService } from '../../core/ui/toast.service';
 import { DemoActionConfirmComponent } from './demo-action-confirm.component';
+import { DemoEventsSummaryComponent } from './demo-events-summary.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { firstValueFrom } from 'rxjs';
 
@@ -39,7 +48,7 @@ const INSTANT_SCENARIOS = new Set(['explore_routes', 'tracking_states', 'queue_f
 @Component({
   selector: 'app-demo-center-panel',
   standalone: true,
-  imports: [DemoActionConfirmComponent, SpinnerComponent],
+  imports: [DemoActionConfirmComponent, DemoEventsSummaryComponent, SpinnerComponent],
   templateUrl: './demo-center-panel.component.html',
   styleUrl: './demo-center-panel.component.scss',
 })
@@ -47,7 +56,10 @@ export class DemoCenterPanelComponent implements OnChanges {
   @Input() open = false;
   @Input({ required: true }) demoInfo: DemoInfo | null = null;
   @Input() tick = 0;
-  @Input() events: DeliveryEventPayload[] = [];
+  @Input() platformFeed: PlatformFeedItem[] = [];
+  @Input() upcomingScripts: ScriptAction[] = [];
+  @Input() tickIntervalMs = 1000;
+  @Input() deliveries: Delivery[] = [];
   @Input() couriers: Courier[] = [];
   @Input() selectedCourierId: string | null = null;
   @Input() mapPrefs: DemoMapPrefs = {
@@ -60,6 +72,8 @@ export class DemoCenterPanelComponent implements OnChanges {
 
   @Output() closed = new EventEmitter<void>();
   @Output() applyScenario = new EventEmitter<ScenarioApplyResult>();
+  @Output() focusCourier = new EventEmitter<string>();
+  @Output() openFullAudit = new EventEmitter<void>();
   @Output() mapPrefsChange = new EventEmitter<DemoMapPrefs>();
 
   readonly demoControlsHint = DEMO_CONTROLS_TOOLTIP;
@@ -71,7 +85,6 @@ export class DemoCenterPanelComponent implements OnChanges {
   ];
 
   activeTab: DemoPanelTab = 'control';
-  eventCourierFilter: string | null = null;
   confirmOpen = false;
   confirmPreview: DemoActionPreview | null = null;
   confirmAction: DemoActionKind | null = null;
@@ -108,15 +121,32 @@ export class DemoCenterPanelComponent implements OnChanges {
   }
 
   get sessionStatusLabel(): string {
-    return demoSessionStatusLabel(this.demoInfo, this.tick);
+    return demoSessionStatusLabel(this.demoInfo, this.tick, this.upcomingScripts);
+  }
+
+  get hasScheduledEvents(): boolean {
+    const pending =
+      this.upcomingScripts.length > 0
+        ? this.upcomingScripts.filter((s) => s.tick > this.tick).length
+        : (this.demoInfo?.scripts?.filter((s) => s.tick > this.tick).length ?? 0);
+    return pending > 0;
   }
 
   get scenarioLock() {
-    return demoScenarioLock(this.demoInfo, this.tick);
+    return demoScenarioLock(this.demoInfo, this.tick, this.upcomingScripts);
   }
 
   get scenarioModeBanner() {
     return demoScenarioModeBanner(this.scenarioLock);
+  }
+
+  get scheduleRows() {
+    const scripts = this.demoInfo?.scripts?.length ? this.demoInfo.scripts : this.upcomingScripts;
+    return buildScheduleRows(scripts, this.tick, this.tickIntervalMs);
+  }
+
+  get queuedRows() {
+    return buildQueuedDeliveryRows(this.deliveries, this.couriers);
   }
 
   get selectedCourier(): Courier | undefined {
@@ -169,29 +199,21 @@ export class DemoCenterPanelComponent implements OnChanges {
     return 'Reconectar entregador selecionado.';
   }
 
-  filteredEvents(): DeliveryEventPayload[] {
-    return filterDemoEvents(this.events, this.eventCourierFilter);
-  }
-
-  eventGroups(): { label: string; items: DeliveryEventPayload[] }[] {
-    return groupEventsByRecency(this.filteredEvents());
-  }
-
-  eventTitle(ev: DeliveryEventPayload): string {
-    return timelineDisplay({
-      id: '',
-      courier_id: ev.courier_id,
-      type: ev.type,
-      message: ev.message,
-      timestamp: ev.timestamp,
-    }).title;
-  }
-
-  eventBadge = eventTypeBadge;
-  formatTime = formatTime;
-
   setTab(tab: DemoPanelTab): void {
     this.activeTab = tab;
+  }
+
+  onStatusStripClick(): void {
+    if (!this.hasScheduledEvents) return;
+    this.activeTab = 'events';
+  }
+
+  onOpenFullAudit(): void {
+    this.openFullAudit.emit();
+  }
+
+  onFocusCourier(courierId: string): void {
+    this.focusCourier.emit(courierId);
   }
 
   onClose(): void {

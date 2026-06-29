@@ -11,7 +11,7 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import * as L from 'leaflet';
-import { Courier, DeliveryEventPayload, DemoInfo, Landmark, MapBounds, ScenarioApplyResult, TrackingState } from '../../services/dispatch/types';
+import { Courier, Delivery, DemoInfo, Landmark, MapBounds, PlatformFeedItem, ScenarioApplyResult, ScriptAction, TrackingState } from '../../services/dispatch/types';
 import {
   courierMatchesFilter,
   formatBbox,
@@ -23,6 +23,7 @@ import {
 } from '../../lib/dispatch-view.utils';
 import { DemoMapPrefs } from '../../lib/demo.constants';
 import { DemoCenterPanelComponent } from '../demo-center/demo-center-panel.component';
+import { DemoOperationsAuditShellComponent } from '../demo-center/demo-operations-audit-shell.component';
 
 interface MarkerEntry {
   marker: L.Marker;
@@ -32,7 +33,7 @@ interface MarkerEntry {
 @Component({
   selector: 'app-dispatch-map',
   standalone: true,
-  imports: [DemoCenterPanelComponent],
+  imports: [DemoCenterPanelComponent, DemoOperationsAuditShellComponent],
   templateUrl: './dispatch-map.component.html',
   styleUrl: './dispatch-map.component.scss',
 })
@@ -48,9 +49,13 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() showRoutePolyline = true;
   @Input() highlightCourierId: string | null = null;
   @Input() demoCenterOpen = false;
+  @Input() operationsAuditOpen = false;
   @Input() demoInfo: DemoInfo | null = null;
   @Input() demoTick = 0;
-  @Input() demoEvents: DeliveryEventPayload[] = [];
+  @Input() demoPlatformFeed: PlatformFeedItem[] = [];
+  @Input() demoUpcomingScripts: ScriptAction[] = [];
+  @Input() demoTickIntervalMs = 1000;
+  @Input() demoDeliveries: Delivery[] = [];
   @Input() demoMapPrefs: DemoMapPrefs = {
     showBoundsOverlay: false,
     showRoutePolyline: true,
@@ -61,8 +66,12 @@ export class DispatchMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Output() filterChange = new EventEmitter<TrackingFilter>();
   @Output() selectCourier = new EventEmitter<string>();
   @Output() toggleDemoCenter = new EventEmitter<void>();
+  @Output() toggleOperationsAudit = new EventEmitter<void>();
+  @Output() openOperationsAudit = new EventEmitter<void>();
+  @Output() operationsAuditClosed = new EventEmitter<void>();
   @Output() demoClosed = new EventEmitter<void>();
   @Output() demoApplyScenario = new EventEmitter<ScenarioApplyResult>();
+  @Output() demoFocusCourier = new EventEmitter<string>();
   @Output() demoMapPrefsChange = new EventEmitter<DemoMapPrefs>();
 
   readonly filterOptions: { value: TrackingFilter; label: string }[] = [
